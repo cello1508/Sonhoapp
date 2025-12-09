@@ -86,19 +86,19 @@ export function MissionOverlay({ isOpen, onClose, tasks, category }: MissionOver
                                     initial={{ x: 50, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
                                     exit={{ x: -50, opacity: 0 }}
-                                    className="w-full max-w-md flex flex-col items-center text-center space-y-8"
+                                    className="w-full max-w-md flex flex-col items-center text-center space-y-6"
                                 >
-                                    <div className="w-32 h-32 bg-slate-900 rounded-full flex items-center justify-center border-4 border-slate-800 shadow-2xl mb-4">
-                                        <currentTask.icon size={64} className="text-dream-400" />
+                                    <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center border-4 border-slate-800 shadow-2xl mb-2">
+                                        <currentTask.icon size={48} className="text-dream-400" />
                                     </div>
 
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white mb-2">{currentTask.title}</h2>
-                                        <p className="text-slate-400 text-lg leading-relaxed">{currentTask.description}</p>
+                                    <div className="space-y-2">
+                                        <h2 className="text-2xl font-bold text-white leading-tight">{currentTask.title}</h2>
+                                        <p className="text-slate-400 text-base leading-relaxed px-4">{currentTask.description}</p>
                                     </div>
 
                                     {/* Interaction Area */}
-                                    <div className="w-full space-y-4">
+                                    <div className="w-full space-y-4 pt-2">
                                         {currentTask.type === 'action' && (
                                             <div className="bg-slate-900/50 p-6 rounded-2xl border border-dashed border-slate-700">
                                                 <p className="text-indigo-300 font-bold">Faça isso agora</p>
