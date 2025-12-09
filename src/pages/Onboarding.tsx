@@ -49,6 +49,14 @@ const STEPS = [
         ]
     },
     {
+        id: 'bedtime',
+        type: 'time_input',
+        title: 'Que horas você dorme?',
+        description: 'Vamos te ajudar a lembrar de fazer um teste de realidade antes de dormir.',
+        Icon: Clock,
+        iconColor: 'text-indigo-400'
+    },
+    {
         id: 'install',
         type: 'install',
         title: 'Instale o App',
@@ -71,6 +79,7 @@ export function Onboarding() {
     const [currentStep, setCurrentStep] = useState(0);
     const [direction, setDirection] = useState(1);
     const [name, setName] = useState('');
+    const [bedtime, setBedtime] = useState('23:00');
 
     const { completeOnboarding, hasCompletedOnboarding } = useApp();
     const { user } = useAuth(); // Get user to update DB
@@ -100,11 +109,14 @@ export function Onboarding() {
 
     const finish = async () => {
         // 1. Mark local state
-        completeOnboarding(name || 'Sonhador');
+        completeOnboarding(name || 'Sonhador', bedtime);
 
         // 2. Mark remote state explicitely for reliability
         if (user) {
-            await authService.updateOnboardingStatus(user.id, true);
+            await authService.updatePreferences(user.id, {
+                onboarding_completed: true,
+                bedtime: bedtime
+            });
         }
 
         navigate('/');
@@ -199,6 +211,23 @@ export function Onboarding() {
                                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                                     </motion.button>
                                 ))}
+                            </div>
+                        </>
+                    )}
+
+                    {stepData.type === 'time_input' && stepData.Icon && (
+                        <>
+                            <stepData.Icon size={64} className="text-indigo-400 mb-6" />
+                            <h1 className="text-3xl font-bold mb-4">{stepData.title}</h1>
+                            <p className="text-slate-400 mb-8 max-w-xs">{stepData.description}</p>
+
+                            <div className="relative group">
+                                <input
+                                    type="time"
+                                    value={bedtime}
+                                    onChange={(e) => setBedtime(e.target.value)}
+                                    className="bg-slate-900/50 text-4xl font-bold p-4 rounded-2xl border-2 border-slate-700 focus:border-indigo-500 focus:outline-none text-white text-center w-48"
+                                />
                             </div>
                         </>
                     )}
@@ -310,7 +339,7 @@ export function Onboarding() {
 
             {/* Footer Actions */}
             <div className="absolute bottom-10 left-0 right-0 px-6 z-20 max-w-md mx-auto">
-                {(stepData.type === 'info' || stepData.type === 'install') && (
+                {(stepData.type === 'info' || stepData.type === 'install' || stepData.type === 'time_input') && (
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}

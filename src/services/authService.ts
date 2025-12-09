@@ -55,8 +55,8 @@ export const authService = {
         return { data, error };
     },
 
-    async updateOnboardingStatus(userId: string, completed: boolean) {
-        // 1. Get current preferences to not overwrite others
+    async updatePreferences(userId: string, newPrefs: Record<string, any>) {
+        // 1. Get current preferences
         const { data: user, error: fetchError } = await (supabase
             .from('users') as any)
             .select('preferences')
@@ -66,14 +66,24 @@ export const authService = {
         if (fetchError) return { error: fetchError };
 
         const currentPrefs = (user?.preferences as Record<string, any>) || {};
-        const newPrefs = { ...currentPrefs, onboarding_completed: completed };
+        const mergedPrefs = { ...currentPrefs, ...newPrefs };
 
         // 2. Update
         const { error } = await (supabase
             .from('users') as any)
-            .update({ preferences: newPrefs })
+            .update({ preferences: mergedPrefs })
             .eq('id', userId);
 
         return { error };
     },
+
+    // Legacy support or specific wrapper
+    async updateOnboardingStatus(userId: string, completed: boolean) {
+        return this.updatePreferences(userId, { onboarding_completed: completed });
+    },
+
+    // Save User Stats (XP, Streak, etc.) - Stored in 'preferences' for now to avoid schema changes
+    async updateUserStats(userId: string, stats: any) {
+        return this.updatePreferences(userId, { stats });
+    }
 };

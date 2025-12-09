@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { Dream, UserStats } from '../types';
+import { authService } from '../services/authService';
+import { supabase } from '../lib/supabase';
 
 const DREAMS_KEY = 'dreamlab_dreams';
 const STATS_KEY = 'dreamlab_stats';
@@ -9,7 +11,9 @@ const DEFAULT_STATS: UserStats = {
     level: 1,
     streak: 0,
     lastJournalDate: null,
-    dreamsRecorded: 0
+    dreamsRecorded: 0,
+    dailyActions: 0,
+    bedtime: '23:00' // Default bedtime
 };
 
 interface AppContextType {
@@ -18,8 +22,10 @@ interface AppContextType {
     addDream: (dream: Omit<Dream, 'id' | 'date'>) => void;
     deleteDream: (id: string) => void;
     hasCompletedOnboarding: boolean;
-    completeOnboarding: (name: string) => void;
+    completeOnboarding: (name: string, bedtime?: string) => void;
     syncDreams: (userId: string) => Promise<void>;
+    updateBedtime: (time: string) => void;
+    lucidProbability: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -32,8 +38,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const [stats, setStats] = useState<UserStats>(() => {
         const saved = localStorage.getItem(STATS_KEY);
-        return saved ? JSON.parse(saved) : DEFAULT_STATS;
+        return saved ? { ...DEFAULT_STATS, ...JSON.parse(saved) } : DEFAULT_STATS;
     });
+
+    const [lucidProbability, setLucidProbability] = useState(15);
 
     useEffect(() => {
         localStorage.setItem(DREAMS_KEY, JSON.stringify(dreams));
@@ -41,7 +49,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+        // Recalculate probability whenever stats change
+        calculateProbability();
+
+        // Sync to Supabase if user is logged in (throttled ideally, but for MVP direct effect)
+        // Need user ID, can't get from useAuth easily inside provider unless we pass it or access auth instance directly.
+        // Better: syncDreams handles initial load. For updates:
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user) {
+                authService.updateUserStats(data.user.id, stats);
+            }
+        });
     }, [stats]);
+
+    const calculateProbability = () => {
+        // Base: 15%
+        let prob = 15;
+
+        // +10% per Daily Action (capped at 5 actions = +50%)
+        prob += Math.min(stats.dailyActions * 10, 50);
+
+        // +2% per Streak day (capped at 15 days = +30%)
+        prob += Math.min(stats.streak * 2, 30);
+
+        // Cap at 95%
+        setLucidProbability(Math.min(prob, 95));
+    };
 
     const awardXP = (amount: number) => {
         setStats(prev => {
@@ -56,7 +89,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setStats(prev => {
             let newStreak = prev.streak;
+            let dailyActions = prev.dailyActions;
+
+            // Reset logic for new day
             if (prev.lastJournalDate !== today) {
+                dailyActions = 0; // Reset actions for new day
+
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
 
@@ -69,11 +107,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 newStreak = 1;
             }
 
+            dailyActions += 1; // Increment for this action
+
             return {
                 ...prev,
                 lastJournalDate: today,
                 streak: newStreak,
-                dreamsRecorded: prev.dreamsRecorded + 1
+                dreamsRecorded: prev.dreamsRecorded + 1,
+                dailyActions
             };
         });
     };
@@ -95,10 +136,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     const deleteDream = async (id: string) => {
-        // Optimistic update
         setDreams(prev => prev.filter(d => d.id !== id));
-
-        // Remote delete
         const { dreamService } = await import('../services/dreamService');
         await dreamService.deleteDream(id);
     };
@@ -107,21 +145,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return localStorage.getItem('dreamlab_onboarding_completed') === 'true';
     });
 
-    const completeOnboarding = (name: string) => {
+    const updateBedtime = (time: string) => {
+        setStats(prev => ({ ...prev, bedtime: time }));
+        // Sync to DB if user is logged in happens in completeOnboarding or separately
+    };
+
+    const completeOnboarding = (_name: string, bedtime?: string) => {
         localStorage.setItem('dreamlab_onboarding_completed', 'true');
-        // Save name to localStorage or stats in future
-        console.log('User completed onboarding:', name);
         setHasCompletedOnboarding(true);
+        if (bedtime) updateBedtime(bedtime);
     };
 
     const syncDreams = async (userId: string) => {
         const { dreamService } = await import('../services/dreamService');
         const { data: nights } = await dreamService.getRecentNights(userId, 30);
 
+        // Also sync profile for preferences (bedtime & stats)
+        const { data: profile } = await authService.getProfile(userId);
+        if (profile?.preferences) {
+            const prefs = profile.preferences as any;
+            if (prefs.bedtime || prefs.stats) {
+                setStats(prev => ({
+                    ...prev,
+                    ...prefs.stats, // Merge remote stats
+                    bedtime: prefs.bedtime || prev.bedtime
+                }));
+            }
+        }
+
         if (nights) {
-            // Flatten nights to get dreams, or if you change UI to show nights, keep it. 
-            // Current UI expects Dream[].
-            // Mapping Logic:
             const remoteDreams: Dream[] = nights.flatMap((night: any) =>
                 (night.dreams || []).map((d: any) => ({
                     id: d.id,
@@ -136,10 +188,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 }))
             );
 
-            // Merge or Replace? 
-            // For MVP, Replace from Server (Server is Truth)
-            // But preserving local ID if strictly local? 
-            // Creating a simple "Replace with Server Data" policy for Journal.
             if (remoteDreams.length > 0) {
                 setDreams(remoteDreams);
             }
@@ -147,7 +195,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AppContext.Provider value={{ dreams, stats, addDream, deleteDream, hasCompletedOnboarding, completeOnboarding, syncDreams }}>
+        <AppContext.Provider value={{
+            dreams,
+            stats,
+            addDream,
+            deleteDream,
+            hasCompletedOnboarding,
+            completeOnboarding,
+            syncDreams,
+            updateBedtime,
+            lucidProbability
+        }}>
             {children}
         </AppContext.Provider>
     );

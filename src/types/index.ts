@@ -15,4 +15,6 @@ export interface UserStats {
     streak: number;
     lastJournalDate: string | null;
     dreamsRecorded: number;
+    dailyActions: number; // Number of actions taken today
+    bedtime?: string; // HH:mm format
 }
