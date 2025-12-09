@@ -2,7 +2,7 @@ import { useApp } from '../context/AppContext';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { Header } from '../components/layout/Header';
 import { StatsHeader } from '../components/gamification/StatsHeader';
-import { DreamCard } from '../components/journal/DreamCard';
+import { DreamStack } from '../components/journal/DreamStack';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
@@ -29,14 +29,13 @@ export function Journal() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Histórico</h2>
-                        {dreams.map(dream => (
-                            <DreamCard key={dream.id} dream={dream} />
-                        ))}
-                    </div>
+                    <>
+                        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Histórico</h2>
+                        <DreamStack dreams={dreams} />
+                    </>
                 )}
             </div>
         </MobileLayout>
     );
 }
+
