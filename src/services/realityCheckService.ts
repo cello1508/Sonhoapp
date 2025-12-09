@@ -5,8 +5,8 @@ type RealityCheckInsert = Database['public']['Tables']['reality_checks']['Insert
 
 export const realityCheckService = {
     async logCheck(check: RealityCheckInsert) {
-        const { data, error } = await supabase
-            .from('reality_checks')
+        const { data, error } = await (supabase
+            .from('reality_checks') as any)
             .insert(check)
             .select()
             .single();

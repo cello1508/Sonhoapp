@@ -38,8 +38,9 @@ function AppRoutes() {
     if (user) {
       // 1. Sync from DB to Local (if new device)
       const checkDbStatus = async () => {
-        const { data: userProfile } = await authService.getProfile(user.id);
-        const prefs = userProfile?.preferences as any;
+        const { data } = await authService.getProfile(user.id);
+        const userProfile = data as any;
+        const prefs = userProfile?.preferences;
 
         if (prefs?.onboarding_completed && !hasCompletedOnboarding) {
           console.log("Syncing onboarding from DB: TRUE");

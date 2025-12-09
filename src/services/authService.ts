@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database';
 
-type UserProfile = Database['public']['Tables']['users']['Row'];
+
 
 export const authService = {
     // Sign Up with Email/Password
@@ -37,8 +37,8 @@ export const authService = {
     },
 
     async getProfile(userId: string) {
-        const { data, error } = await supabase
-            .from('users')
+        const { data, error } = await (supabase
+            .from('users') as any)
             .select('*')
             .eq('id', userId)
             .single();
@@ -46,8 +46,8 @@ export const authService = {
     },
 
     async updateProfile(userId: string, updates: Database['public']['Tables']['users']['Update']) {
-        const { data, error } = await supabase
-            .from('users')
+        const { data, error } = await (supabase
+            .from('users') as any)
             .update(updates)
             .eq('id', userId)
             .select()
@@ -57,8 +57,8 @@ export const authService = {
 
     async updateOnboardingStatus(userId: string, completed: boolean) {
         // 1. Get current preferences to not overwrite others
-        const { data: user, error: fetchError } = await supabase
-            .from('users')
+        const { data: user, error: fetchError } = await (supabase
+            .from('users') as any)
             .select('preferences')
             .eq('id', userId)
             .single();
@@ -69,8 +69,8 @@ export const authService = {
         const newPrefs = { ...currentPrefs, onboarding_completed: completed };
 
         // 2. Update
-        const { error } = await supabase
-            .from('users')
+        const { error } = await (supabase
+            .from('users') as any)
             .update({ preferences: newPrefs })
             .eq('id', userId);
 

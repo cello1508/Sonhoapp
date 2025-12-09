@@ -292,7 +292,7 @@ export function Onboarding() {
 
             {/* Footer Actions */}
             <div className="absolute bottom-10 left-0 right-0 px-6 z-20 max-w-md mx-auto">
-                {stepData.type === 'info' && (
+                {(stepData.type === 'info' || stepData.type === 'install') && (
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}

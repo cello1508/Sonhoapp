@@ -3,15 +3,15 @@ import { PostgrestError } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
 type Night = Database['public']['Tables']['nights']['Row'];
-type Dream = Database['public']['Tables']['dreams']['Row'];
+
 type NightInsert = Database['public']['Tables']['nights']['Insert'];
 type DreamInsert = Database['public']['Tables']['dreams']['Insert'];
 
 export const dreamService = {
     // --- Nights ---
     async createNight(night: NightInsert): Promise<{ data: Night | null; error: PostgrestError | null; }> {
-        const { data, error } = await supabase
-            .from('nights')
+        const { data, error } = await (supabase
+            .from('nights') as any)
             .insert(night)
             .select()
             .single();
@@ -19,8 +19,8 @@ export const dreamService = {
     },
 
     async getRecentNights(userId: string, limit = 7) {
-        const { data, error } = await supabase
-            .from('nights')
+        const { data, error } = await (supabase
+            .from('nights') as any)
             .select(`
         *,
         dreams (*)
@@ -32,8 +32,8 @@ export const dreamService = {
     },
 
     async getNightByDate(userId: string, date: string) {
-        const { data, error } = await supabase
-            .from('nights')
+        const { data, error } = await (supabase
+            .from('nights') as any)
             .select(`
         *,
         dreams (*)
@@ -46,8 +46,8 @@ export const dreamService = {
 
     // --- Dreams ---
     async addDream(dream: DreamInsert) {
-        const { data, error } = await supabase
-            .from('dreams')
+        const { data, error } = await (supabase
+            .from('dreams') as any)
             .insert(dream)
             .select()
             .single();
@@ -55,8 +55,8 @@ export const dreamService = {
     },
 
     async updateDream(dreamId: string, updates: Database['public']['Tables']['dreams']['Update']) {
-        const { data, error } = await supabase
-            .from('dreams')
+        const { data, error } = await (supabase
+            .from('dreams') as any)
             .update(updates)
             .eq('id', dreamId)
             .select()
@@ -65,8 +65,8 @@ export const dreamService = {
     },
 
     async deleteDream(dreamId: string) {
-        const { error } = await supabase
-            .from('dreams')
+        const { error } = await (supabase
+            .from('dreams') as any)
             .delete()
             .eq('id', dreamId);
         return { error };
@@ -74,8 +74,8 @@ export const dreamService = {
 
     // --- Stats ---
     async getDreamsCount(userId: string) {
-        const { count, error } = await supabase
-            .from('dreams')
+        const { count, error } = await (supabase
+            .from('dreams') as any)
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId);
         return { count, error };
