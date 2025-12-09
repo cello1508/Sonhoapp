@@ -17,6 +17,8 @@ interface AppContextType {
     stats: UserStats;
     addDream: (dream: Omit<Dream, 'id' | 'date'>) => void;
     deleteDream: (id: string) => void;
+    hasCompletedOnboarding: boolean;
+    completeOnboarding: (name: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -95,8 +97,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setDreams(prev => prev.filter(d => d.id !== id));
     };
 
+    const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
+        return localStorage.getItem('dreamlab_onboarding_completed') === 'true';
+    });
+
+    const completeOnboarding = (name: string) => {
+        localStorage.setItem('dreamlab_onboarding_completed', 'true');
+        // Save name to localStorage or stats in future
+        console.log('User completed onboarding:', name);
+        setHasCompletedOnboarding(true);
+    };
+
     return (
-        <AppContext.Provider value={{ dreams, stats, addDream, deleteDream }}>
+        <AppContext.Provider value={{ dreams, stats, addDream, deleteDream, hasCompletedOnboarding, completeOnboarding }}>
             {children}
         </AppContext.Provider>
     );
