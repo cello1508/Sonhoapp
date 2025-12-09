@@ -25,7 +25,6 @@ export function AddDream() {
     // AI Image State
     const [generatingImage, setGeneratingImage] = useState(false);
     const [coverImage, setCoverImage] = useState<string | null>(null);
-    const [coverImage, setCoverImage] = useState<string | null>(null);
 
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
