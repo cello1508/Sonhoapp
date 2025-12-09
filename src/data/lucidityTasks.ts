@@ -1,4 +1,6 @@
-import { Hand, ScanFace, Bell, Wind, Brain, MapPin, Video, PlayCircle, Image, Star, BookOpen, Anchor, Zap, Repeat } from 'lucide-react';
+import { Hand, ScanFace, Bell, Wind, Brain, MapPin, Video, PlayCircle, Image, Star, BookOpen, Anchor, Zap, Repeat, Info } from 'lucide-react';
+
+export type TaskType = 'action' | 'question' | 'info';
 
 export interface LucidityTask {
     id: string;
@@ -7,132 +9,188 @@ export interface LucidityTask {
     category: 'morning' | 'day' | 'night';
     xp: number;
     icon: any;
+    type: TaskType;
+    questionOptions?: string[]; // For 'question' type
+    correctAnswer?: string; // Optional, if there's a right answer
+    infoContent?: string; // For 'info' type
 }
 
 export const LUCIDITY_TASKS: LucidityTask[] = [
+    // --- Perguntas de Check-in (Perguntas) ---
+    {
+        id: 'dream_recall_check',
+        title: 'Recall Onírico',
+        description: 'Você lembra de algum sonho hoje?',
+        category: 'morning',
+        xp: 5,
+        icon: Brain,
+        type: 'question',
+        questionOptions: ['Sim, com detalhes', 'Vagos fragmentos', 'Não lembro nada']
+    },
+    {
+        id: 'mood_check',
+        title: 'Check de Humor',
+        description: 'Como você está se sentindo agora?',
+        category: 'morning',
+        xp: 5,
+        icon: ScanFace,
+        type: 'question',
+        questionOptions: ['Energizado', 'Calmo', 'Cansado', 'Ansioso']
+    },
+
     // --- Hábito e Questionamento (Dia) ---
     {
         id: 'rc_hands',
-        title: 'Check de Realidade — Mãos',
-        description: 'Olhe para as mãos por 3 segundos, conte os dedos e tente atravessar a palma.',
+        title: 'Check de Realidade: Mãos',
+        description: 'Olhe para as mãos por 3 segundos. Conte os dedos. Tente atravessar a palma com o indicador.',
         category: 'day',
-        xp: 10,
-        icon: Hand
+        xp: 15,
+        icon: Hand,
+        type: 'action'
     },
     {
         id: 'magic_text',
         title: 'Texto Mágico',
-        description: 'Leia algo, desvie o olhar e leia de novo. Se mudar, é sonho.',
+        description: 'Leia uma frase qualquer ao seu redor. Desvie o olhar. Leia de novo. Mudou?',
         category: 'day',
-        xp: 10,
-        icon: BookOpen
+        xp: 15,
+        icon: BookOpen,
+        type: 'action'
     },
     {
         id: 'mirror_check',
         title: 'Espelho da Realidade',
-        description: 'Olhe no espelho e foque nos olhos. Pergunte: "Estou sonhando?"',
+        description: 'Vá até um espelho. Olhe nos seus olhos e pergunte sinceramente: "Estou sonhando?"',
         category: 'day',
-        xp: 10,
-        icon: ScanFace
+        xp: 15,
+        icon: ScanFace,
+        type: 'action'
     },
     {
         id: 'strangeness_trigger',
         title: 'Gatilho de Estranhamento',
-        description: 'Algo estranho aconteceu? Pare e faça um teste de realidade.',
+        description: 'Observe o ambiente. Há algo fora do lugar? Uma cor estranha? Uma física errada?',
         category: 'day',
         xp: 15,
-        icon: Bell
+        icon: Bell,
+        type: 'action'
     },
     {
         id: 'breathing',
-        title: 'Respiração de Consciência',
-        description: '1 min de respiração 4-4-4-4 para aumentar clareza.',
+        title: 'Respiração Consciente',
+        description: 'Pare tudo. Faça 3 respirações profundas (4s inspira, 4s segura, 4s solta). Sinta o "agora".',
         category: 'day',
         xp: 10,
-        icon: Wind
+        icon: Wind,
+        type: 'action'
     },
     {
         id: 'dream_codes',
         title: 'Códigos do Sonho',
-        description: 'Identifique um padrão recorrente dos seus sonhos (ex: água, atraso).',
+        description: 'Pense no seu "Sinal de Sonho" mais comum (ex: água, voar). Procure por ele agora.',
         category: 'day',
         xp: 20,
-        icon: MapPin
+        icon: MapPin,
+        type: 'action'
     },
     {
         id: 'micro_viz',
         title: 'Microvisualização',
-        description: 'Feche os olhos por 20s e imagine-se lucido em um sonho.',
+        description: 'Feche os olhos por 10s. Imagine vividamente que você está voando agora.',
         category: 'day',
         xp: 15,
-        icon: Video
+        icon: Video,
+        type: 'action'
+    },
+
+    // --- Pílulas de Conhecimento (Info) ---
+    {
+        id: 'info_mild',
+        title: 'Técnica MILD',
+        description: 'MILD significa Indução Mnemônica de Sonhos Lúcidos.',
+        category: 'day',
+        xp: 5,
+        icon: Info,
+        type: 'info',
+        infoContent: 'A chave para o MILD é a memória prospectiva: lembrar de fazer algo no futuro. Ao treinar isso, você treina seu cérebro para lembrar de ficar lúcido.'
+    },
+    {
+        id: 'info_rem',
+        title: 'Ciclo REM',
+        description: 'Os sonhos mais vívidos acontecem no sono REM.',
+        category: 'day',
+        xp: 5,
+        icon: Info,
+        type: 'info',
+        infoContent: 'O sono REM acontece em ciclos de 90 minutos. Os períodos finais da manhã são os mais longos, durando até 45 minutos. É a "Zona de Ouro" para lucidez.'
     },
 
     // --- Antes de Dormir (Noite) ---
     {
         id: 'memory_training',
         title: 'Treino de Memória',
-        description: 'Tente lembrar 3 coisas estranhas de ontem. Reforça o músculo da memória.',
+        description: 'Tente lembrar 3 coisas estranhas que aconteceram ontem.',
         category: 'night',
         xp: 15,
-        icon: Brain
+        icon: Brain,
+        type: 'question',
+        questionOptions: ['Lembrei de tudo', 'Lembrei de algo', 'Não lembrei']
     },
     {
         id: 'mild_ritual',
         title: 'Ritual MILD',
-        description: 'Repita 5x com intenção: "Vou perceber que estou sonhando".',
+        description: 'Repita mentalmente 5x: "Na próxima vez que eu sonhar, vou lembrar que estou sonhando".',
         category: 'night',
         xp: 20,
-        icon: Repeat
+        icon: Repeat,
+        type: 'action'
     },
     {
         id: 'scene_entry',
         title: 'Cena de Entrada',
-        description: 'Visualize onde quer acordar no sonho com todos os sentidos.',
+        description: 'Escolha um cenário para o sonho desta noite. Visualize os detalhes sensoriais.',
         category: 'night',
         xp: 20,
-        icon: Image
+        icon: Image,
+        type: 'action'
     },
     {
         id: 'zero_screen',
         title: 'Tela Zero',
-        description: 'Sem telas 60 min antes de dormir.',
+        description: 'Você evitou telas nos últimos 30 minutos?',
         category: 'night',
         xp: 30,
-        icon: Star
-    },
-    {
-        id: 'guided_journal',
-        title: 'Diário Guiado (Pré-Sono)',
-        description: 'Responda onde estava, com quem e o que houve de estranho.',
-        category: 'night',
-        xp: 15,
-        icon: BookOpen
+        icon: Star,
+        type: 'question',
+        questionOptions: ['Sim, tela zero!', 'Tentei, mas falhei', 'Não']
     },
     {
         id: 'lucidity_anchor',
         title: 'Âncora de Lucidez',
-        description: 'Olhe para sua "âncora" (anel, mãos) antes de fechar os olhos.',
+        description: 'Olhe para sua âncora (anel/mãos) agora. Defina a intenção de vê-la no sonho.',
         category: 'night',
         xp: 10,
-        icon: Anchor
+        icon: Anchor,
+        type: 'action'
     },
 
     // --- Madrugada (Avançado) ---
     {
         id: 'wbtb_lite',
         title: 'WBTB Lite',
-        description: 'Acordou após ~5h? Afirme sua intenção e volte a dormir.',
+        description: 'Acordou de madrugada? Fique 5 min acordado lendo sobre sonhos, depois volte a dormir.',
         category: 'night',
         xp: 50,
-        icon: Zap
+        icon: Zap,
+        type: 'action'
     },
     {
         id: 'reentry',
-        title: 'Reentrada no Sonho',
-        description: 'Acordou de um sonho? Não se mexa e tente voltar para ele.',
+        title: 'Reentrada (DEILD)',
+        description: 'Se acordar, não se mexa! Tente visualizar o último sonho imediatamente.',
         category: 'night',
         xp: 40,
-        icon: PlayCircle
+        icon: PlayCircle,
+        type: 'action'
     }
 ];
