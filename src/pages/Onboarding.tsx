@@ -1,7 +1,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
@@ -72,11 +72,18 @@ export function Onboarding() {
     const [direction, setDirection] = useState(1);
     const [name, setName] = useState('');
 
-    const { completeOnboarding } = useApp();
+    const { completeOnboarding, hasCompletedOnboarding } = useApp();
     const { user } = useAuth(); // Get user to update DB
     const navigate = useNavigate();
 
     const stepData = STEPS[currentStep];
+
+    // Redirect if already completed
+    useEffect(() => {
+        if (hasCompletedOnboarding) {
+            navigate('/', { replace: true });
+        }
+    }, [hasCompletedOnboarding, navigate]);
 
     const handleNext = () => {
         if (currentStep < STEPS.length - 1) {
