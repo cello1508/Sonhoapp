@@ -1,0 +1,228 @@
+Boa. Agora a gente vai sair da ideia e entrar no concreto.
+
+Vou pensar como se você fosse usar algo tipo Firestore, MongoDB ou até Baserow: coleções e documentos em JSON.
+
+Você precisa guardar quatro coisas muito bem:
+
+1. Usuário e preferências
+2. Noites e sonhos
+3. Testes de realidade e rotinas
+4. Métricas e streaks
+
+Vou te dar um modelo base em JSON que cobre isso.
+
+---
+
+### 1. Usuário
+
+```json
+{
+  "user_id": "u_123",
+  "name": "Marcelo",
+  "email": "user@example.com",
+  "created_at": "2025-12-09T10:00:00Z",
+  "timezone": "America/Sao_Paulo",
+  "preferences": {
+    "language": "pt-BR",
+    "notifications_enabled": true,
+    "reality_check_reminders_per_day": 5,
+    "pre_sleep_routine_time": "22:30",
+    "wake_up_target_time": "07:00",
+    "audio_guides_enabled": true
+  }
+}
+```
+
+Coleção sugerida: `users`
+
+---
+
+### 2. Noites e sonhos
+
+Um registro por noite e os sonhos ligados a essa noite.
+
+```json
+{
+  "night_id": "n_2025_12_09_u_123",
+  "user_id": "u_123",
+  "date": "2025-12-09",
+  "sleep_start": "2025-12-08T23:45:00Z",
+  "sleep_end": "2025-12-09T07:10:00Z",
+  "sleep_quality": 4,
+  "pre_sleep_routine_completed": true,
+  "post_sleep_routine_completed": true,
+  "techniques_used": ["MILD", "intencao_pre_sono"],
+  "dreams": [
+    {
+      "dream_id": "d_1",
+      "created_at": "2025-12-09T07:05:00Z",
+      "title": "Sonho do aeroporto",
+      "raw_text": "Eu estava em um aeroporto gigante...",
+      "lucid": true,
+      "lucidity_level": 3,
+      "emotion_main": "ansiedade",
+      "emotions": ["ansiedade", "curiosidade"],
+      "tags": ["aeroporto", "familia"],
+      "recall_clarity": 4,
+      "voice_note_url": "https://storage/.../d_1.m4a"
+    },
+    {
+      "dream_id": "d_2",
+      "created_at": "2025-12-09T07:07:00Z",
+      "title": "Fragmento rápido",
+      "raw_text": "Só lembro de estar correndo na rua",
+      "lucid": false,
+      "lucidity_level": 0,
+      "emotion_main": "neutro",
+      "tags": ["rua"],
+      "recall_clarity": 2
+    }
+  ]
+}
+```
+
+Coleção: `nights`
+Você também pode separar `dreams` em outra coleção e referenciar por `night_id`, se quiser mais flexibilidade.
+
+---
+
+### 3. Testes de realidade
+
+Logs dos testes que o app dispara e o usuário responde.
+
+```json
+{
+  "reality_check_id": "rc_987",
+  "user_id": "u_123",
+  "timestamp": "2025-12-09T14:32:00Z",
+  "trigger_type": "notification",
+  "check_type": "contar_dedos",
+  "completed": true,
+  "user_answer": "Sim, estou acordado",
+  "perceived_state": "acordado",
+  "context": {
+    "location": "casa",
+    "device_state": "screen_on",
+    "energy_level_self_report": 3
+  }
+}
+```
+
+Coleção: `reality_checks`
+
+Isso permite medir consistência e criar recomendações inteligentes.
+
+---
+
+### 4. Rotina pré e pós sono
+
+Se você quiser registrar cada rotina como evento separado:
+
+```json
+{
+  "routine_event_id": "re_555",
+  "user_id": "u_123",
+  "night_id": "n_2025_12_09_u_123",
+  "type": "pre_sleep",
+  "timestamp": "2025-12-08T22:35:00Z",
+  "steps": [
+    {
+      "step_key": "higiene_sono",
+      "completed": true
+    },
+    {
+      "step_key": "intencao_pre_sono",
+      "completed": true,
+      "note": "Hoje quero reconhecer quando estiver em aeroporto"
+    },
+    {
+      "step_key": "visualizacao",
+      "completed": false
+    }
+  ]
+}
+```
+
+Coleção: `routine_events`
+
+---
+
+### 5. Técnicas disponíveis no app
+
+Tabela meio fixa, mais para configuração.
+
+```json
+{
+  "technique_id": "MILD",
+  "name": "MILD",
+  "category": "inducao",
+  "description_short": "Repetir intenções e visualizar que você percebe que está sonhando.",
+  "recommended_for_beginners": true,
+  "instructions": [
+    "Ao deitar, lembre de um sonho recente.",
+    "Visualize o momento em que você percebe que está sonhando.",
+    "Repita mentalmente: 'Na próxima vez que eu estiver sonhando, vou perceber que é um sonho.'"
+  ],
+  "estimated_time_minutes": 5
+}
+```
+
+Coleção: `techniques`
+
+---
+
+### 6. Métricas e streaks
+
+Você pode recalcular sempre, mas guardar um snapshot diário ajuda.
+
+```json
+{
+  "metrics_id": "m_2025_12_09_u_123",
+  "user_id": "u_123",
+  "date": "2025-12-09",
+  "dreams_remembered_count": 2,
+  "lucid_dreams_count": 1,
+  "reality_checks_completed": 4,
+  "pre_sleep_routine_completed": true,
+  "current_streak_days": 5,
+  "longest_streak_days": 12,
+  "technique_usage": {
+    "MILD": 4,
+    "WBTB": 1
+  }
+}
+```
+
+Coleção: `daily_metrics`
+
+---
+
+### 7. Insights gerados por LLM
+
+Para o “coach” de sonhos interpretar padrões.
+
+```json
+{
+  "insight_id": "ins_999",
+  "user_id": "u_123",
+  "related_night_ids": ["n_2025_12_07_u_123", "n_2025_12_08_u_123", "n_2025_12_09_u_123"],
+  "generated_at": "2025-12-09T12:00:00Z",
+  "summary": "Você tem muitos sonhos em ambientes de viagem e transporte.",
+  "suggested_action": "Use aeroportos e rodovias como gatilhos para perceber que está sonhando.",
+  "insight_type": "padrão_tema",
+  "model_version": "llm_v1"
+}
+```
+
+Coleção: `insights`
+
+---
+
+Com isso você já tem:
+
+* base para hábito diário
+* histórico rico de sonhos
+* logs para IA trabalhar em cima
+* espaço para gamificação e streaks sem gambiarra em cima dos dados
+
+Próximo passo natural é desenhar quais coleções você realmente quer no MVP e quais ficam para a versão 2, para você não cair na armadilha de modelar o “app perfeito” e nunca lançar.

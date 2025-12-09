@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { ChevronRight, Moon, Sparkles, Feather, Palette, Brain, Shield, Clock, Smile, Frown, Rocket } from 'lucide-react';
+import { ChevronRight, Moon, Sparkles, Feather, Palette, Brain, Shield, Clock, Smile, Frown, Rocket, Share, PlusSquare, Smartphone, BookOpen, Copy } from 'lucide-react';
 import { StarField } from '../components/ui/StarField';
 
 const STEPS = [
@@ -44,6 +44,14 @@ const STEPS = [
             { id: 'sometimes', label: 'Flashes ocasionais', icon: Clock, color: 'bg-orange-500' },
             { id: 'rarely', label: 'Escuridão total', icon: Frown, color: 'bg-slate-500' }
         ]
+    },
+    {
+        id: 'install',
+        type: 'install',
+        title: 'Instale o App',
+        description: 'Para a melhor experiência, adicione à sua tela inicial.',
+        Icon: Smartphone,
+        iconColor: 'text-white'
     },
     {
         id: 'name',
@@ -175,6 +183,79 @@ export function Onboarding() {
                                 ))}
                             </div>
                         </>
+                    )}
+
+                    {stepData.type === 'install' && (
+                        <div className="w-full flex flex-col items-center">
+                            <motion.div
+                                className="mb-8 relative p-6 bg-slate-900/80 rounded-[3rem] border-4 border-slate-700 shadow-2xl overflow-hidden"
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                            >
+                                {/* Mobile Screen Mock */}
+                                <div className="w-56 h-96 bg-black rounded-[2rem] relative overflow-hidden flex flex-col items-center justify-end border border-slate-800">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-dream-900 to-slate-900 opacity-50" />
+
+                                    {/* App Icon Preview */}
+                                    <div className="absolute top-20 flex flex-col items-center">
+                                        <div className="w-16 h-16 bg-dream-500 rounded-xl mb-2 shadow-lg shadow-dream-500/30 flex items-center justify-center">
+                                            <Moon className="text-white fill-white" size={32} />
+                                        </div>
+                                        <div className="text-[10px] text-white font-medium">SonhoApp</div>
+                                    </div>
+
+                                    {/* Safari Bottom Bar Mock */}
+                                    <div className="w-full h-12 bg-slate-800/90 backdrop-blur-md border-t border-slate-700 flex items-center justify-center relative z-10 gap-8">
+                                        <div className="w-6 h-6 rounded text-slate-500"><ChevronRight className="rotate-180 opacity-50" size={20} /></div>
+                                        <div className="w-6 h-6 rounded text-slate-500"><ChevronRight className="opacity-50" size={20} /></div>
+
+                                        {/* Share Icon Target */}
+                                        <div className="relative">
+                                            <div className="w-6 h-6 text-blue-400"><Share size={20} /></div>
+                                            <motion.div
+                                                className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-center w-max"
+                                                animate={{ y: [0, -5, 0] }}
+                                                transition={{ duration: 1.5, repeat: Infinity }}
+                                            >
+                                                <div className="text-xs font-bold text-white mb-1">1. Toque aqui</div>
+                                                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-white mx-auto rotate-180" />
+                                            </motion.div>
+                                        </div>
+
+                                        <div className="w-6 h-6 rounded text-slate-500"><BookOpen size={20} /></div>
+                                        <div className="w-6 h-6 rounded text-slate-500"><Copy size={20} /></div>
+                                    </div>
+
+                                    {/* Menu Popup Mock */}
+                                    <motion.div
+                                        className="absolute bottom-2 left-2 right-2 bg-slate-800/95 backdrop-blur-xl rounded-xl p-2 border border-white/10 z-20"
+                                        initial={{ y: 100, opacity: 0 }}
+                                        animate={{ y: -60, opacity: 1 }}
+                                        transition={{ delay: 2, duration: 0.5 }}
+                                    >
+                                        <div className="flex items-center p-2 rounded-lg bg-white/10 border border-white/5">
+                                            <PlusSquare className="text-white mr-3" size={20} />
+                                            <div className="text-left">
+                                                <div className="text-[10px] font-bold text-white">Adicionar à Tela de Início</div>
+                                            </div>
+                                        </div>
+                                        <motion.div
+                                            className="absolute -right-4 top-1/2 -translate-y-1/2 flex items-center"
+                                            initial={{ opacity: 0, x: 10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 3 }}
+                                        >
+                                            <div className="text-xs font-bold text-white mr-2">2. Selecione</div>
+                                            <ChevronRight className="text-white rotate-180" size={16} />
+                                        </motion.div>
+                                    </motion.div>
+
+                                </div>
+                            </motion.div>
+
+                            <h1 className="text-3xl font-bold mb-4">{stepData.title}</h1>
+                            <p className="text-slate-400 mb-8 max-w-xs">{stepData.description}</p>
+                        </div>
                     )}
 
                     {stepData.type === 'input' && stepData.Icon && (
