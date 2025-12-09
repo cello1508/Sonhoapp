@@ -17,4 +17,5 @@ export interface UserStats {
     dreamsRecorded: number;
     dailyActions: number; // Number of actions taken today
     bedtime?: string; // HH:mm format
+    completedTasks?: string[]; // IDs of tasks completed today
 }

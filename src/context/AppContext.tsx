@@ -25,6 +25,7 @@ interface AppContextType {
     completeOnboarding: (name: string, bedtime?: string) => void;
     syncDreams: (userId: string) => Promise<void>;
     updateBedtime: (time: string) => void;
+    toggleTask: (taskId: string, xpReward: number) => void;
     lucidProbability: number;
 }
 
@@ -119,6 +120,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
     };
 
+    const toggleTask = (taskId: string, xpReward: number) => {
+        setStats(prev => {
+            const isCompleted = prev.completedTasks?.includes(taskId);
+            let newCompleted = prev.completedTasks || [];
+            let newXp = prev.xp;
+            let newDailyActions = prev.dailyActions;
+
+            if (isCompleted) {
+                newCompleted = newCompleted.filter(id => id !== taskId);
+                newXp -= xpReward;
+                newDailyActions = Math.max(0, newDailyActions - 1);
+            } else {
+                newCompleted = [...newCompleted, taskId];
+                newXp += xpReward;
+                newDailyActions += 1;
+            }
+
+            return {
+                ...prev,
+                xp: newXp,
+                dailyActions: newDailyActions,
+                completedTasks: newCompleted
+            };
+        });
+    };
+
     const addDream = (dreamData: Omit<Dream, 'id' | 'date'>) => {
         const newDream: Dream = {
             ...dreamData,
@@ -204,6 +231,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             completeOnboarding,
             syncDreams,
             updateBedtime,
+            toggleTask,
             lucidProbability
         }}>
             {children}

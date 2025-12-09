@@ -8,6 +8,7 @@ import { Learn } from './pages/Learn';
 import { Profile } from './pages/Profile';
 import { Onboarding } from './pages/Onboarding';
 import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
 import { useAuth } from './hooks/useAuth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -82,8 +83,8 @@ function AppRoutes() {
         </RequireAuth>
       } />
 
-      <Route path="/" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
-      <Route path="/journal" element={<Navigate to="/" replace />} />
+      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/journal" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
       <Route path="/add" element={<ProtectedRoute><AddDream /></ProtectedRoute>} />
       <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

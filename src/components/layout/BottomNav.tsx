@@ -1,4 +1,4 @@
-import { Moon, BookOpen, User, GraduationCap, Plus } from 'lucide-react';
+import { BookOpen, User, GraduationCap, Plus, FlaskConical } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
@@ -9,7 +9,7 @@ export function BottomNav() {
     const isActive = (path: string) => location.pathname === path;
 
     const navItems = [
-        { icon: Moon, label: "Sonhos", path: "/" },
+        { icon: FlaskConical, label: "Lab", path: "/" },
         { icon: GraduationCap, label: "Aprender", path: "/learn" },
         { icon: Plus, label: "Novo", path: "/add", isAction: true },
         { icon: BookOpen, label: "Diário", path: "/journal" },
