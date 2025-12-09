@@ -3,177 +3,110 @@ import { MobileLayout } from '../components/layout/MobileLayout';
 import { StatsHeader } from '../components/gamification/StatsHeader';
 import { LUCIDITY_TASKS, type LucidityTask } from '../data/lucidityTasks';
 import { MissionOverlay } from '../components/mission/MissionOverlay';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useMemo } from 'react';
-import { CheckCircle2, Circle, Sun, Moon, Sparkles, Play, Zap } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Play, Zap, Sun, Moon, CheckCircle2 } from 'lucide-react';
 
 export function Dashboard() {
     const { stats } = useApp();
     const tasks = LUCIDITY_TASKS;
 
-    const [showMission, setShowMission] = useState(false);
+    const [activeMission, setActiveMission] = useState<'morning' | 'day' | 'night' | null>(null);
 
-    // Random Daily Mission: Select 3-5 tasks based on date to keep it consistent for the day
-    // (Simplification: Just randomization for now, ideally seeded by date)
-    const dailyMissionTasks = useMemo(() => {
-        const shuffled = [...tasks].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 5); // Take 5 random tasks
-    }, []);
+    // Filter tasks by category
+    const morningTasks = useMemo(() => tasks.filter(t => t.category === 'morning'), [tasks]);
+    const dayTasks = useMemo(() => tasks.filter(t => t.category === 'day'), [tasks]);
+    const nightTasks = useMemo(() => tasks.filter(t => t.category === 'night'), [tasks]);
 
-    // Categorize for the "Library" view
-    const dayTasks = tasks.filter(t => t.category === 'day');
-    const nightTasks = tasks.filter(t => t.category === 'night' && t.id !== 'wbtb_lite' && t.id !== 'reentry');
-    const advTasks = tasks.filter(t => t.id === 'wbtb_lite' || t.id === 'reentry');
+    const getMissionStatus = (category: 'morning' | 'day' | 'night') => {
+        const today = new Date().toDateString();
+        const lastDate = stats.lastMissionDates?.[category];
+        return lastDate === today ? 'completed' : 'active';
+    };
+
+    const MissionCard = ({ category, title, icon: Icon, color, tasksForMission }: { category: 'morning' | 'day' | 'night', title: string, icon: any, color: string, tasksForMission: LucidityTask[] }) => {
+        const status = getMissionStatus(category);
+        const isCompleted = status === 'completed';
+
+        // Select 3 random tasks for this session if Active, otherwise irrelevant
+        // In a real app we might want to store THESE specific 3 tasks for the day too.
+        // For MVP, we pass all available tasks to overlay, and overlay picks or we pick here.
+        // Let's pass all relevant tasks to overlay and let it cycle user through them (or subset).
+
+        return (
+            <button
+                disabled={isCompleted}
+                onClick={() => setActiveMission(category)}
+                className={`w-full relative overflow-hidden rounded-2xl p-1 transition-all duration-300 ${isCompleted ? 'opacity-70 grayscale' : 'hover:scale-[1.02] shadow-xl'}`}
+            >
+                <div className={`absolute inset-0 bg-gradient-to-r ${color} opacity-20`} />
+                <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-xl p-6 flex items-center justify-between border border-white/5">
+                    <div className="flex items-center space-x-4">
+                        <div className={`p-4 rounded-full ${isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white'}`}>
+                            {isCompleted ? <CheckCircle2 size={24} /> : <Icon size={24} />}
+                        </div>
+                        <div className="text-left">
+                            <h3 className="text-lg font-bold text-white">{title}</h3>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-xs text-slate-400">
+                                    {isCompleted ? 'Concluído por hoje' : `${tasksForMission.length} tarefas disponíveis`}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {!isCompleted && (
+                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                            <Play size={18} fill="currentColor" className="text-white" />
+                        </div>
+                    )}
+                </div>
+            </button>
+        );
+    };
 
     return (
         <MobileLayout>
             <div className="pb-24">
                 <StatsHeader stats={stats} />
 
-                <div className="px-6 mt-6 mb-8">
-                    <button
-                        onClick={() => setShowMission(true)}
-                        className="w-full relative overflow-hidden group bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-1 shadow-2xl shadow-indigo-500/30"
-                    >
-                        <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors" />
-                        <div className="relative bg-slate-900/40 backdrop-blur-sm rounded-[22px] p-6 flex items-center justify-between">
-                            <div className="text-left">
-                                <div className="flex items-center space-x-2 text-indigo-300 mb-1">
-                                    <Zap size={16} fill="currentColor" />
-                                    <span className="text-xs font-bold uppercase tracking-wider">Missão Diária</span>
-                                </div>
-                                <h2 className="text-2xl font-bold text-white leading-tight">Iniciar Treino<br />de Lucidez</h2>
-                            </div>
-                            <div className="w-14 h-14 bg-white text-indigo-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                <Play size={28} fill="currentColor" className="ml-1" />
-                            </div>
-                        </div>
-                    </button>
-                </div>
+                <div className="px-6 mt-8 space-y-4">
+                    <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Missões do Dia</h2>
 
-                <div className="px-6 space-y-8">
-                    <div className="flex items-center space-x-4">
-                        <div className="h-px bg-slate-800 flex-1" />
-                        <span className="text-xs font-bold text-slate-500 uppercase">Biblioteca de Técnicas</span>
-                        <div className="h-px bg-slate-800 flex-1" />
-                    </div>
-
-                    <TaskSection
-                        title="Hábito e Questionamento"
-                        subtitle="Durante o dia"
+                    <MissionCard
+                        category="morning"
+                        title="Despertar & Recall"
                         icon={Sun}
-                        tasks={dayTasks}
-                        color="text-yellow-400"
+                        color="from-orange-500 to-yellow-500"
+                        tasksForMission={morningTasks}
                     />
 
-                    <TaskSection
-                        title="Antes de Dormir"
-                        subtitle="Preparação Mental"
+                    <MissionCard
+                        category="day"
+                        title="Lucidez Ativa"
+                        icon={Zap}
+                        color="from-blue-500 to-indigo-500"
+                        tasksForMission={dayTasks}
+                    />
+
+                    <MissionCard
+                        category="night"
+                        title="Preparação Noturna"
                         icon={Moon}
-                        tasks={nightTasks}
-                        color="text-indigo-400"
-                    />
-
-                    <TaskSection
-                        title="Madrugada Avançada"
-                        subtitle="Técnicas Poderosas"
-                        icon={Sparkles}
-                        tasks={advTasks}
-                        color="text-purple-400"
+                        color="from-purple-500 to-indigo-900"
+                        tasksForMission={nightTasks}
                     />
                 </div>
             </div>
 
             <MissionOverlay
-                isOpen={showMission}
-                onClose={() => setShowMission(false)}
-                tasks={dailyMissionTasks}
+                isOpen={!!activeMission}
+                onClose={() => setActiveMission(null)}
+                tasks={
+                    activeMission === 'morning' ? morningTasks :
+                        activeMission === 'day' ? dayTasks :
+                            activeMission === 'night' ? nightTasks : []
+                }
+                category={activeMission}
             />
         </MobileLayout>
-    );
-}
-
-function TaskSection({ title, subtitle, icon: Icon, tasks, color }: { title: string, subtitle: string, icon: any, tasks: LucidityTask[], color: string }) {
-    return (
-        <div className="space-y-4">
-            <div className="flex items-center space-x-3 mb-2">
-                <div className={`p-2 rounded-lg bg-white/5 ${color}`}>
-                    <Icon size={20} />
-                </div>
-                <div>
-                    <h2 className="text-lg font-bold text-white leading-none">{title}</h2>
-                    <p className="text-xs text-slate-500 font-medium">{subtitle}</p>
-                </div>
-            </div>
-
-            <div className="space-y-3">
-                {tasks.map(task => (
-                    <TaskCard key={task.id} task={task} />
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function TaskCard({ task }: { task: LucidityTask }) {
-    const { stats, toggleTask } = useApp();
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    // Check if completed today. 
-    // Logic note: CompletedCompletedTasks resets daily in context logic (assumed, need to ensure later)
-    // For now purely visual based on ID presence
-    const isCompleted = stats.completedTasks?.includes(task.id);
-
-    return (
-        <motion.div
-            layout
-            className={`relative overflow-hidden rounded-2xl border transition-all ${isCompleted ? 'bg-indigo-950/30 border-indigo-500/30' : 'bg-slate-900 border-slate-800'}`}
-        >
-            <div
-                className="p-4 flex items-center gap-4 cursor-pointer"
-                onClick={() => setIsExpanded(!isExpanded)}
-            >
-                <div className={`p-3 rounded-xl ${isCompleted ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-400'}`}>
-                    <task.icon size={20} />
-                </div>
-
-                <div className="flex-1">
-                    <h3 className={`font-bold text-sm ${isCompleted ? 'text-indigo-200 line-through decoration-indigo-500/50' : 'text-slate-200'}`}>
-                        {task.title}
-                    </h3>
-                    <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                            +{task.xp} XP
-                        </span>
-                        {!isExpanded && <span className="text-[10px] text-slate-500 truncate max-w-[120px]">{task.description}</span>}
-                    </div>
-                </div>
-
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        toggleTask(task.id, task.xp);
-                    }}
-                    className={`p-2 rounded-full transition-all ${isCompleted ? 'text-indigo-400 bg-indigo-400/10' : 'text-slate-600 hover:bg-slate-800'}`}
-                >
-                    {isCompleted ? <CheckCircle2 size={24} /> : <Circle size={24} />}
-                </button>
-            </div>
-
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="bg-black/20"
-                    >
-                        <div className="p-4 pt-0 text-sm text-slate-400 border-t border-white/5 mt-2 pt-3">
-                            {task.description}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
     );
 }

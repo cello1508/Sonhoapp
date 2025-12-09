@@ -18,4 +18,9 @@ export interface UserStats {
     dailyActions: number; // Number of actions taken today
     bedtime?: string; // HH:mm format
     completedTasks?: string[]; // IDs of tasks completed today
+    lastMissionDates?: {
+        morning: string | null;
+        day: string | null;
+        night: string | null;
+    };
 }

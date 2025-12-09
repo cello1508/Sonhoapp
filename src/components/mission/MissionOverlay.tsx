@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, ChevronRight, Trophy } from 'lucide-react';
 import { type LucidityTask } from '../../data/lucidityTasks';
@@ -8,53 +8,57 @@ interface MissionOverlayProps {
     isOpen: boolean;
     onClose: () => void;
     tasks: LucidityTask[];
+    category: 'morning' | 'day' | 'night' | null;
 }
 
-export function MissionOverlay({ isOpen, onClose, tasks }: MissionOverlayProps) {
-    const { toggleTask } = useApp();
+export function MissionOverlay({ isOpen, onClose, tasks, category }: MissionOverlayProps) {
+    const { completeMission } = useApp();
     const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
     const [isCompleted, setIsCompleted] = useState(false);
-    const [completedIds, setCompletedIds] = useState<string[]>([]);
     const [showSuccess, setShowSuccess] = useState(false);
+
+    // Filter to limit tasks per session (e.g. 3 tasks max)
+    const sessionTasks = useMemo(() => {
+        // Shuffle and take 3 for brevity, or take all passed
+        return tasks.slice(0, 3);
+    }, [tasks]);
 
     // Reset state when opening
     useEffect(() => {
         if (isOpen) {
             setCurrentTaskIndex(0);
             setIsCompleted(false);
-            setCompletedIds([]);
             setShowSuccess(false);
         }
     }, [isOpen]);
 
-    const currentTask = tasks[currentTaskIndex];
-    const progress = ((currentTaskIndex) / tasks.length) * 100;
+    const currentTask = sessionTasks[currentTaskIndex];
+    const progress = ((currentTaskIndex) / sessionTasks.length) * 100;
 
     const handleNext = () => {
         if (!currentTask) return;
 
-        // Mark current as done locally (and in context)
-        if (!completedIds.includes(currentTask.id)) {
-            toggleTask(currentTask.id, currentTask.xp);
-            setCompletedIds(prev => [...prev, currentTask.id]);
-        }
-
-        if (currentTaskIndex < tasks.length - 1) {
+        if (currentTaskIndex < sessionTasks.length - 1) {
             setCurrentTaskIndex(prev => prev + 1);
             setIsCompleted(false);
         } else {
+            // Mission Complete!
             setShowSuccess(true);
+            const totalXP = sessionTasks.reduce((acc, t) => acc + t.xp, 0);
+            if (category) {
+                completeMission(category, totalXP);
+            }
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || !category) return null;
 
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="fixed inset-0 z-50 bg-slate-950 flex flex-col"
             >
                 {/* Header */}
@@ -76,61 +80,63 @@ export function MissionOverlay({ isOpen, onClose, tasks }: MissionOverlayProps) 
                 <div className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
                     {!showSuccess ? (
                         <AnimatePresence mode="wait">
-                            <motion.div
-                                key={currentTask.id}
-                                initial={{ x: 50, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                exit={{ x: -50, opacity: 0 }}
-                                className="w-full max-w-md flex flex-col items-center text-center space-y-8"
-                            >
-                                <div className="w-32 h-32 bg-slate-900 rounded-full flex items-center justify-center border-4 border-slate-800 shadow-2xl mb-4">
-                                    <currentTask.icon size={64} className="text-dream-400" />
-                                </div>
+                            {currentTask && (
+                                <motion.div
+                                    key={currentTask.id}
+                                    initial={{ x: 50, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: -50, opacity: 0 }}
+                                    className="w-full max-w-md flex flex-col items-center text-center space-y-8"
+                                >
+                                    <div className="w-32 h-32 bg-slate-900 rounded-full flex items-center justify-center border-4 border-slate-800 shadow-2xl mb-4">
+                                        <currentTask.icon size={64} className="text-dream-400" />
+                                    </div>
 
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white mb-2">{currentTask.title}</h2>
-                                    <p className="text-slate-400 text-lg leading-relaxed">{currentTask.description}</p>
-                                </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white mb-2">{currentTask.title}</h2>
+                                        <p className="text-slate-400 text-lg leading-relaxed">{currentTask.description}</p>
+                                    </div>
 
-                                {/* Interaction Area */}
-                                <div className="w-full space-y-4">
-                                    {currentTask.type === 'action' && (
-                                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-dashed border-slate-700">
-                                            <p className="text-whitetext-sm font-bold text-indigo-300">Faça isso agora</p>
-                                        </div>
-                                    )}
+                                    {/* Interaction Area */}
+                                    <div className="w-full space-y-4">
+                                        {currentTask.type === 'action' && (
+                                            <div className="bg-slate-900/50 p-6 rounded-2xl border border-dashed border-slate-700">
+                                                <p className="text-indigo-300 font-bold">Faça isso agora</p>
+                                            </div>
+                                        )}
 
-                                    {currentTask.type === 'question' && currentTask.questionOptions && (
-                                        <div className="grid gap-3">
-                                            {currentTask.questionOptions.map((opt, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => setIsCompleted(true)}
-                                                    className={`p-4 rounded-xl border font-medium transition-all text-left flex items-center justify-between ${isCompleted ? 'bg-indigo-500/20 border-indigo-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'}`}
-                                                >
-                                                    <span>{opt}</span>
-                                                    {isCompleted && <Check size={18} className="text-indigo-400" />}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                        {currentTask.type === 'question' && currentTask.questionOptions && (
+                                            <div className="grid gap-3">
+                                                {currentTask.questionOptions.map((opt, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => setIsCompleted(true)}
+                                                        className={`p-4 rounded-xl border font-medium transition-all text-left flex items-center justify-between ${isCompleted ? 'bg-indigo-500/20 border-indigo-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'}`}
+                                                    >
+                                                        <span>{opt}</span>
+                                                        {isCompleted && <Check size={18} className="text-indigo-400" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
 
-                                    {currentTask.type === 'info' && (
-                                        <div className="bg-indigo-950/30 p-6 rounded-2xl border border-indigo-500/30">
-                                            <p className="text-indigo-200">{currentTask.infoContent}</p>
-                                        </div>
-                                    )}
-                                </div>
+                                        {currentTask.type === 'info' && (
+                                            <div className="bg-indigo-950/30 p-6 rounded-2xl border border-indigo-500/30">
+                                                <p className="text-indigo-200">{currentTask.infoContent}</p>
+                                            </div>
+                                        )}
+                                    </div>
 
-                            </motion.div>
+                                </motion.div>
+                            )}
                         </AnimatePresence>
                     ) : (
-                        <SuccessView onClose={onClose} xpEarned={tasks.reduce((acc, t) => acc + t.xp, 0)} />
+                        <SuccessView onClose={onClose} xpEarned={sessionTasks.reduce((acc, t) => acc + t.xp, 0)} />
                     )}
                 </div>
 
                 {/* Footer */}
-                {!showSuccess && (
+                {!showSuccess && currentTask && (
                     <div className="p-6 pb-12 border-t border-slate-900 bg-slate-950">
                         <button
                             onClick={handleNext}
@@ -140,7 +146,7 @@ export function MissionOverlay({ isOpen, onClose, tasks }: MissionOverlayProps) 
                                 : 'bg-green-500 hover:bg-green-400 text-slate-950 shadow-lg shadow-green-500/20'
                                 }`}
                         >
-                            <span>{currentTaskIndex === tasks.length - 1 ? 'Finalizar' : 'Continuar'}</span>
+                            <span>{currentTaskIndex === sessionTasks.length - 1 ? 'Finalizar' : 'Continuar'}</span>
                             <ChevronRight size={24} />
                         </button>
                     </div>

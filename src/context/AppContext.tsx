@@ -13,7 +13,12 @@ const DEFAULT_STATS: UserStats = {
     lastJournalDate: null,
     dreamsRecorded: 0,
     dailyActions: 0,
-    bedtime: '23:00' // Default bedtime
+    bedtime: '23:00',
+    lastMissionDates: {
+        morning: null,
+        day: null,
+        night: null
+    }
 };
 
 interface AppContextType {
@@ -26,6 +31,7 @@ interface AppContextType {
     syncDreams: (userId: string) => Promise<void>;
     updateBedtime: (time: string) => void;
     toggleTask: (taskId: string, xpReward: number) => void;
+    completeMission: (category: 'morning' | 'day' | 'night', xpEarned: number) => void;
     lucidProbability: number;
 }
 
@@ -39,10 +45,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const [stats, setStats] = useState<UserStats>(() => {
         const saved = localStorage.getItem(STATS_KEY);
+        // Merge to ensure new fields like lastMissionDates exist
         return saved ? { ...DEFAULT_STATS, ...JSON.parse(saved) } : DEFAULT_STATS;
     });
 
     const [lucidProbability, setLucidProbability] = useState(15);
+
+    const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
+        return localStorage.getItem('dreamlab_onboarding_completed') === 'true';
+    });
 
     useEffect(() => {
         localStorage.setItem(DREAMS_KEY, JSON.stringify(dreams));
@@ -50,12 +61,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-        // Recalculate probability whenever stats change
         calculateProbability();
 
-        // Sync to Supabase if user is logged in (throttled ideally, but for MVP direct effect)
-        // Need user ID, can't get from useAuth easily inside provider unless we pass it or access auth instance directly.
-        // Better: syncDreams handles initial load. For updates:
+        // Sync to Supabase if user is logged in
         supabase.auth.getUser().then(({ data }) => {
             if (data.user) {
                 authService.updateUserStats(data.user.id, stats);
@@ -64,16 +72,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, [stats]);
 
     const calculateProbability = () => {
-        // Base: 15%
         let prob = 15;
-
-        // +10% per Daily Action (capped at 5 actions = +50%)
         prob += Math.min(stats.dailyActions * 10, 50);
-
-        // +2% per Streak day (capped at 15 days = +30%)
         prob += Math.min(stats.streak * 2, 30);
-
-        // Cap at 95%
         setLucidProbability(Math.min(prob, 95));
     };
 
@@ -94,7 +95,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             // Reset logic for new day
             if (prev.lastJournalDate !== today) {
-                dailyActions = 0; // Reset actions for new day
+                dailyActions = 0;
 
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
@@ -108,7 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 newStreak = 1;
             }
 
-            dailyActions += 1; // Increment for this action
+            dailyActions += 1;
 
             return {
                 ...prev,
@@ -120,29 +121,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
     };
 
-    const toggleTask = (taskId: string, xpReward: number) => {
-        setStats(prev => {
-            const isCompleted = prev.completedTasks?.includes(taskId);
-            let newCompleted = prev.completedTasks || [];
-            let newXp = prev.xp;
-            let newDailyActions = prev.dailyActions;
+    const completeMission = (category: 'morning' | 'day' | 'night', xpEarned: number) => {
+        const today = new Date().toDateString();
 
-            if (isCompleted) {
-                newCompleted = newCompleted.filter(id => id !== taskId);
-                newXp -= xpReward;
-                newDailyActions = Math.max(0, newDailyActions - 1);
-            } else {
-                newCompleted = [...newCompleted, taskId];
-                newXp += xpReward;
-                newDailyActions += 1;
-            }
+        setStats(prev => {
+            // Check if attempting to re-complete today
+            if (prev.lastMissionDates?.[category] === today) return prev;
 
             return {
                 ...prev,
-                xp: newXp,
-                dailyActions: newDailyActions,
-                completedTasks: newCompleted
+                xp: prev.xp + xpEarned,
+                dailyActions: prev.dailyActions + 1,
+                lastMissionDates: {
+                    ...(prev.lastMissionDates || { morning: null, day: null, night: null }),
+                    [category]: today
+                }
             };
+        });
+    };
+
+    const toggleTask = (taskId: string, _xpReward: number) => {
+        // Maintained for potential backward compatibility
+        setStats(prev => {
+            const isCompleted = prev.completedTasks?.includes(taskId);
+            let newCompleted = prev.completedTasks || [];
+            if (isCompleted) {
+                newCompleted = newCompleted.filter(id => id !== taskId);
+            } else {
+                newCompleted = [...newCompleted, taskId];
+            }
+            return { ...prev, completedTasks: newCompleted };
         });
     };
 
@@ -156,7 +164,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setDreams(prev => [newDream, ...prev]);
         recordAction();
 
-        // XP Logic: 10 base + 5 for clarity + 20 if lucid
         let xpEarned = 10 + (dreamData.clarity * 2);
         if (dreamData.isLucid) xpEarned += 20;
         awardXP(xpEarned);
@@ -168,13 +175,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await dreamService.deleteDream(id);
     };
 
-    const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
-        return localStorage.getItem('dreamlab_onboarding_completed') === 'true';
-    });
-
     const updateBedtime = (time: string) => {
         setStats(prev => ({ ...prev, bedtime: time }));
-        // Sync to DB if user is logged in happens in completeOnboarding or separately
     };
 
     const completeOnboarding = (_name: string, bedtime?: string) => {
@@ -187,14 +189,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { dreamService } = await import('../services/dreamService');
         const { data: nights } = await dreamService.getRecentNights(userId, 30);
 
-        // Also sync profile for preferences (bedtime & stats)
         const { data: profile } = await authService.getProfile(userId);
         if (profile?.preferences) {
             const prefs = profile.preferences as any;
             if (prefs.bedtime || prefs.stats) {
                 setStats(prev => ({
                     ...prev,
-                    ...prefs.stats, // Merge remote stats
+                    ...prefs.stats,
                     bedtime: prefs.bedtime || prev.bedtime
                 }));
             }
@@ -232,6 +233,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             syncDreams,
             updateBedtime,
             toggleTask,
+            completeMission,
             lucidProbability
         }}>
             {children}
