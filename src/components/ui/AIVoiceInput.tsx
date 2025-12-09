@@ -1,12 +1,21 @@
 "use client";
 
 import { Mic, Square } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
+
+// Add global types for Web Speech API
+declare global {
+    interface Window {
+        webkitSpeechRecognition: any;
+        SpeechRecognition: any;
+    }
+}
 
 interface AIVoiceInputProps {
     onStart?: () => void;
-    onStop?: (duration: number, blob?: Blob) => void;
+    onStop?: (duration: number, blob?: Blob, transcript?: string) => void;
+    onTranscriptChange?: (text: string) => void;
     visualizerBars?: number;
     demoMode?: boolean;
     demoInterval?: number;
@@ -16,6 +25,7 @@ interface AIVoiceInputProps {
 export function AIVoiceInput({
     onStart,
     onStop,
+    onTranscriptChange,
     visualizerBars = 48,
     demoMode = false,
     demoInterval = 3000,
@@ -28,11 +38,27 @@ export function AIVoiceInput({
 
     // MediaRecorder State
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-    // const [audioChunks, setAudioChunks] = useState<Blob[]>([]); // Using local var in closure for now
+
+    // Speech Recognition State
+    const [recognition, setRecognition] = useState<any | null>(null);
+    const [transcript, setTranscript] = useState("");
+
+    // Ref to hold the latest transcript to avoid stale closures in event handlers
+    const transcriptRef = useRef("");
 
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    // Effect to notify parent of transcript changes in real-time
+    useEffect(() => {
+        // Sync ref with state for external updates if any (though we primarily write to ref in onresult)
+        // Only trigger this while recording (submitted) to avoid zombie updates after stop
+        // (which prevents user from deleting the text if parent re-renders)
+        if (transcript && submitted) {
+            onTranscriptChange?.(transcript);
+        }
+    }, [transcript, onTranscriptChange, submitted]);
 
     // Cleanup on unmount
     useEffect(() => {
@@ -40,8 +66,11 @@ export function AIVoiceInput({
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
             }
+            if (recognition) {
+                recognition.stop();
+            }
         };
-    }, [mediaRecorder]);
+    }, [mediaRecorder, recognition]);
 
     useEffect(() => {
         let intervalId: ReturnType<typeof setInterval>;
@@ -53,9 +82,6 @@ export function AIVoiceInput({
             }, 1000);
         } else {
             if (time > 0) {
-                // Formatting handled by user of component typically, but we pass duration.
-                // The actual blob is passed via stopRecording logic.
-                // onStop?.(time); // Moved to stopRecording
                 setTime(0);
             }
         }
@@ -65,6 +91,11 @@ export function AIVoiceInput({
 
     const startRecording = async () => {
         try {
+            // Reset transcript
+            setTranscript("");
+            transcriptRef.current = "";
+
+            // 1. Audio Recording
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const recorder = new MediaRecorder(stream);
             const chunks: Blob[] = [];
@@ -77,17 +108,48 @@ export function AIVoiceInput({
 
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: "audio/webm" });
-                // setAudioChunks([]); // Clear for next time
-
-                // Stop all tracks
                 stream.getTracks().forEach(track => track.stop());
 
-                onStop?.(time, blob); // Updated signature
+                // Pass the accumulated transcript from REF (latest value)
+                onStop?.(time, blob, transcriptRef.current);
             };
 
             recorder.start();
             setMediaRecorder(recorder);
-            // setAudioChunks([]);
+
+            // 2. Speech Recognition (Native)
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognizer = null;
+
+            if (SpeechRecognition) {
+                recognizer = new SpeechRecognition();
+                recognizer.continuous = true;
+                recognizer.interimResults = true;
+                recognizer.lang = 'pt-BR'; // Default to Portuguese
+
+                recognizer.onresult = (event: any) => {
+                    // Capture EVERYTHING (Final + Interim)
+                    // event.results contains the entire session history when continuous=true
+                    const currentTranscript = Array.from(event.results)
+                        .map((result: any) => result[0].transcript)
+                        .join('');
+
+                    if (currentTranscript) {
+                        setTranscript(currentTranscript);
+                        transcriptRef.current = currentTranscript; // Sync ref immediately
+                    }
+                };
+
+                recognizer.onerror = (event: any) => {
+                    console.error("Speech recognition error", event.error);
+                };
+
+                recognizer.start();
+                setRecognition(recognizer);
+            } else {
+                console.warn("Speech Recognition API not supported in this browser.");
+            }
+
             setSubmitted(true);
         } catch (err) {
             console.error("Error accessing microphone:", err);
@@ -98,11 +160,18 @@ export function AIVoiceInput({
     const stopRecording = () => {
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
-            setSubmitted(false);
-        } else {
-            // Demo mode fallback
-            setSubmitted(false);
-            onStop?.(time, new Blob());
+        }
+
+        if (recognition) {
+            recognition.stop();
+            setRecognition(null);
+        }
+
+        setSubmitted(false);
+
+        // Demo mode logic is separate, focusing on real implementation here
+        if (!mediaRecorder && isDemo) { // Fallback for pure demo UI testing
+            onStop?.(time, new Blob(), "Texto simulado do modo demo...");
         }
     };
 
@@ -119,8 +188,8 @@ export function AIVoiceInput({
         }
     };
 
-    // ... (Visualizer logic remains same for now, or could use AudioContext for real vis)
-    // Keeping random visualizer for simplicity/performance in MVP.
+    // ... (Visualizer logic remains)
+    // ...
 
     // ... (useEffect for demo animation remains)
     useEffect(() => {
@@ -165,6 +234,7 @@ export function AIVoiceInput({
                     {formatTime(time)}
                 </span>
 
+                {/* Visualizer bars */}
                 <div className="h-12 w-full max-w-[200px] flex items-center justify-center gap-1">
                     {[...Array(visualizerBars)].map((_, i) => (
                         <div
@@ -188,8 +258,15 @@ export function AIVoiceInput({
                 </div>
 
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                    {submitted ? "Gravando..." : "Toque para Gravar"}
+                    {submitted ? "Gravando e Ouvindo..." : "Toque para Gravar"}
                 </p>
+
+                {/* Live Transcript Preview */}
+                {submitted && transcript && (
+                    <p className="text-xs text-slate-400 max-w-xs text-center line-clamp-2 animate-pulse">
+                        "{transcript.trim()}"
+                    </p>
+                )}
             </div>
         </div>
     );

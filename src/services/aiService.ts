@@ -9,39 +9,83 @@ if (API_KEY) {
 
 export const aiService = {
     async transcribeAudio(audioBlob: Blob): Promise<string> {
-        if (!genAI) throw new Error("API Key config missing");
+        if (!API_KEY) throw new Error("API Key config missing");
 
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const mimeType = audioBlob.type || 'audio/webm';
+            const numBytes = audioBlob.size;
+            const displayName = "AUDIO_" + Date.now();
 
-            // Convert Blob to Base64
-            const reader = new FileReader();
-            return new Promise((resolve, reject) => {
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = async () => {
-                    const base64data = reader.result as string;
-                    // Remove data URL prefix (e.g., "data:audio/wav;base64,")
-                    const base64Audio = base64data.split(',')[1];
-                    const mimeType = audioBlob.type || 'audio/webm'; // Default to webm if unknown, usually webm/wav from browser
-
-                    try {
-                        const result = await model.generateContent([
-                            {
-                                inlineData: {
-                                    mimeType: mimeType,
-                                    data: base64Audio
-                                }
-                            },
-                            { text: "Transcreva este áudio de um relato de sonho com precisão. Corrija pontuação e deixe o texto fluído. Retorne apenas o texto transcrito, sem comentários." }
-                        ]);
-                        const response = await result.response;
-                        resolve(response.text());
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                reader.onerror = reject;
+            // 1. Initial resumable request
+            const initialResponse = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?key=${API_KEY}`, {
+                method: 'POST',
+                headers: {
+                    'X-Goog-Upload-Protocol': 'resumable',
+                    'X-Goog-Upload-Command': 'start',
+                    'X-Goog-Upload-Header-Content-Length': numBytes.toString(),
+                    'X-Goog-Upload-Header-Content-Type': mimeType,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ file: { display_name: displayName } })
             });
+
+            if (!initialResponse.ok) {
+                const text = await initialResponse.text();
+                throw new Error(`Failed to initiate upload: ${initialResponse.status} ${text}`);
+            }
+
+            const uploadUrl = initialResponse.headers.get('x-goog-upload-url');
+            if (!uploadUrl) throw new Error("No upload URL found in response headers");
+
+            // 2. Upload the actual bytes
+            // Note: Command 'upload, finalize' is strictly required for small files uploaded in one go
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Length': numBytes.toString(),
+                    'X-Goog-Upload-Offset': '0',
+                    'X-Goog-Upload-Command': 'upload, finalize'
+                },
+                body: audioBlob
+            });
+
+            if (!uploadResponse.ok) {
+                const text = await uploadResponse.text();
+                throw new Error(`Failed to upload file: ${uploadResponse.status} ${text}`);
+            }
+
+            const fileInfo = await uploadResponse.json();
+            const fileUri = fileInfo.file.uri;
+
+            // 3. Generate Content using the file URI
+            // Using gemini-1.5-flash as requested (standard for this task)
+            const genResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: "Transcreva este áudio de um relato de sonho com precisão. Corrija pontuação e deixe o texto fluído. Retorne apenas o texto transcrito, sem comentários." },
+                            { file_data: { mime_type: mimeType, file_uri: fileUri } }
+                        ]
+                    }]
+                })
+            });
+
+            if (!genResponse.ok) {
+                const text = await genResponse.text();
+                throw new Error(`Failed to generate content: ${genResponse.status} ${text}`);
+            }
+
+            const genData = await genResponse.json();
+            const transcription = genData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!transcription) throw new Error("No transcription text found in response");
+
+            return transcription;
+
         } catch (error) {
             console.error("Transcription error:", error);
             throw error;

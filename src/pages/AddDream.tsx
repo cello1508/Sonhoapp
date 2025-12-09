@@ -112,20 +112,21 @@ export function AddDream() {
                     </div>
                     <AIVoiceInput
                         visualizerBars={30}
-                        onStop={async (_, blob) => {
+                        onStop={async (_, blob, transcript) => {
                             setHasAudio(true);
-                            if (blob) {
-                                setTranscribing(true);
-                                try {
-                                    const text = await aiService.transcribeAudio(blob);
-                                    setDescription(prev => prev ? prev + "\n\n" + text : text);
-                                    if (!title) setTitle("Relato de Sonho (Áudio)");
-                                } catch (error) {
-                                    console.error("Transcription error", error);
-                                    alert("Erro ao transcrever áudio. Verifique sua chave API do Gemini.");
-                                    setDescription(prev => prev + "\n[Erro na transcrição: Áudio salvo, mas texto não gerado.]");
-                                } finally {
-                                    setTranscribing(false);
+                            if (transcript) {
+                                const newText = transcript.trim();
+                                const formattedText = newText.charAt(0).toUpperCase() + newText.slice(1);
+
+                                setDescription(prev => {
+                                    return prev ? prev + "\n\n" + formattedText : formattedText;
+                                });
+
+                                if (!title) setTitle("Relato de Sonho (Áudio)");
+                            } else if (blob) {
+                                // Fallback
+                                if (!description) {
+                                    setDescription("🎙️ Gravação de áudio anexada (Transcrição não disponível)");
                                 }
                             }
                         }}
