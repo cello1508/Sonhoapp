@@ -17,11 +17,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) return null; // Or a splash screen
 
+  // 1. Check Auth First
+  if (!user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // 2. Then Check Onboarding
   if (!hasCompletedOnboarding) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // If user is not logged in, redirect to login
+  return <>{children}</>;
+}
+
+// Helper for routes that need Auth but NOT Onboarding check (prevent loops)
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return null;
+
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
@@ -58,8 +73,14 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/auth" element={<Login />} />
+
+      {/* Onboarding needs Auth but shouldn't check onboarding status itself */}
+      <Route path="/onboarding" element={
+        <RequireAuth>
+          <Onboarding />
+        </RequireAuth>
+      } />
 
       <Route path="/" element={<ProtectedRoute><Journal /></ProtectedRoute>} />
       <Route path="/journal" element={<Navigate to="/" replace />} />

@@ -1,3 +1,6 @@
+import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
+
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -70,6 +73,7 @@ export function Onboarding() {
     const [name, setName] = useState('');
 
     const { completeOnboarding } = useApp();
+    const { user } = useAuth(); // Get user to update DB
     const navigate = useNavigate();
 
     const stepData = STEPS[currentStep];
@@ -88,7 +92,14 @@ export function Onboarding() {
     };
 
     const finish = async () => {
+        // 1. Mark local state
         completeOnboarding(name || 'Sonhador');
+
+        // 2. Mark remote state explicitely for reliability
+        if (user) {
+            await authService.updateOnboardingStatus(user.id, true);
+        }
+
         navigate('/');
     };
 
