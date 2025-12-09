@@ -25,7 +25,7 @@ export function AddDream() {
     // AI Image State
     const [generatingImage, setGeneratingImage] = useState(false);
     const [coverImage, setCoverImage] = useState<string | null>(null);
-    const [transcribing, setTranscribing] = useState(false);
+    const [coverImage, setCoverImage] = useState<string | null>(null);
 
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -108,7 +108,6 @@ export function AddDream() {
                 <section>
                     <div className="flex justify-between items-center mb-3">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Gravar Relato</label>
-                        {transcribing && <span className="text-xs text-dream-400 animate-pulse font-medium">Transcrevendo...</span>}
                     </div>
                     <AIVoiceInput
                         visualizerBars={30}
