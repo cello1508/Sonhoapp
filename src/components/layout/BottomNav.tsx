@@ -17,7 +17,7 @@ export function BottomNav() {
     ];
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-50">
+        <div className="fixed bottom-3 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-50">
             <nav className="relative flex items-center justify-between px-2 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl shadow-black/50">
                 {navItems.map((item) => {
                     const active = isActive(item.path);

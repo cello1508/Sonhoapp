@@ -74,7 +74,7 @@ export function StatsHeader({ stats }: { stats: UserStats }) {
     const { lucidProbability } = useApp();
 
     return (
-        <div className="flex flex-col space-y-4 px-5 py-4 bg-slate-900/60 rounded-3xl border border-slate-800/60 backdrop-blur-xl mx-6 mb-8 shadow-2xl shadow-black/20">
+        <div className="flex flex-col space-y-4 px-5 py-4 bg-slate-900/60 rounded-3xl border border-slate-800/60 backdrop-blur-xl mx-6 mt-4 mb-8 shadow-2xl shadow-black/20">
 
             {/* Top Row: Probability & Countdown */}
             <div className="flex items-center justify-between w-full">
