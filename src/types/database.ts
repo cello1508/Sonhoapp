@@ -199,6 +199,32 @@ export interface Database {
                     updated_at?: string
                 }
             }
+            completed_missions: {
+                Row: {
+                    id: string
+                    user_id: string
+                    mission_date: string // date
+                    category: 'morning' | 'day' | 'night'
+                    xp_earned: number
+                    completed_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    mission_date: string
+                    category: 'morning' | 'day' | 'night'
+                    xp_earned?: number
+                    completed_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    mission_date?: string
+                    category?: 'morning' | 'day' | 'night'
+                    xp_earned?: number
+                    completed_at?: string
+                }
+            },
             // Future Expansion: insights, routine_events, techniques
         }
     }

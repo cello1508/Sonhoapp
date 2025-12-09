@@ -121,16 +121,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
     };
 
-    const completeMission = (category: 'morning' | 'day' | 'night', xpEarned: number) => {
+    const completeMission = async (category: 'morning' | 'day' | 'night', xpEarned: number) => {
         const today = new Date().toDateString();
 
+        // Optimistic UI update
         setStats(prev => {
-            // Check if attempting to re-complete today
             if (prev.lastMissionDates?.[category] === today) return prev;
+
+            const newXP = prev.xp + xpEarned;
+            const newLevel = Math.floor(newXP / 100) + 1;
 
             return {
                 ...prev,
-                xp: prev.xp + xpEarned,
+                xp: newXP,
+                level: newLevel,
                 dailyActions: prev.dailyActions + 1,
                 lastMissionDates: {
                     ...(prev.lastMissionDates || { morning: null, day: null, night: null }),
@@ -138,6 +142,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 }
             };
         });
+
+        // Persist to Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { missionService } = await import('../services/missionService');
+            await missionService.completeMission(user.id, category, xpEarned);
+
+            // Also update legacy stats (XP, streaks) in preferences
+            // Note: We need to use the NEW values here, so calculating again for persistence payload
+            // or just letting the optimistic update sync on next load/action. 
+            // Better to sync explicitly:
+            // const newXP = stats.xp + xpEarned; // Use current stats ref which might be stale vs closure? 
+            // Actually 'stats' in closure might be old.
+            // Safer: We don't have the new stats object readily available in this async block without prev.
+            // But updatePreferences merges. Simple fix:
+            // Just sync whatever 'setStats' ends up with next render? No, side effects inside effect needed?
+            // Force re-sync in useEffect[stats] handles this!
+            // Wait, "authService.updateUserStats(user.id, stats)" inside completeMission uses STALE stats.
+
+            // AppContext.tsx has a useEffect on [stats] that syncs to Supabase!
+            // Line 66: useEffect(() => ... authService.updateUserStats ... )
+            // So we DON'T need to manually call authService.updateUserStats here for the basic stats!
+            // We ONLY need to call missionService.completeMission.
+
+            // However, the user might close the app immediately. 
+            // The useEffect will trigger on the state change.
+            // So removing manual authService call is safer to avoid race conditions with stale state.
+        }
     };
 
     const toggleTask = (taskId: string, _xpReward: number) => {
@@ -187,15 +219,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const syncDreams = async (userId: string) => {
         const { dreamService } = await import('../services/dreamService');
+        const { missionService } = await import('../services/missionService');
+
+        // 1. Sync Dreams
         const { data: nights } = await dreamService.getRecentNights(userId, 30);
 
+        // 2. Sync Profile/Stats
         const { data: profile } = await authService.getProfile(userId);
+
+        // 3. Sync Today's Missions from dedicated table
+        const todayISO = new Date().toISOString().split('T')[0];
+        const { data: completedMissions } = await missionService.getMissionsByDate(userId, todayISO);
+
+        let missionDates: UserStats['lastMissionDates'] = { morning: null, day: null, night: null };
+        if (completedMissions) {
+            const todayStr = new Date().toDateString(); // "Tue Dec 09 2025" used in UI logic
+            completedMissions.forEach((m: any) => {
+                if (m.category === 'morning' || m.category === 'day' || m.category === 'night') {
+                    // Map ISO date back to DateString format used by UI for now, or just use todayStr since we queried today
+                    if (missionDates) missionDates[m.category as 'morning' | 'day' | 'night'] = todayStr;
+                }
+            });
+        }
+
         if (profile?.preferences) {
             const prefs = profile.preferences as any;
             if (prefs.bedtime || prefs.stats) {
                 setStats(prev => ({
                     ...prev,
-                    ...prefs.stats,
+                    ...prefs.stats, // Legacy stats (XP, Streak)
+                    lastMissionDates: missionDates, // Override with source of truth from table
                     bedtime: prefs.bedtime || prev.bedtime
                 }));
             }

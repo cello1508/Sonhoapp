@@ -37,6 +37,15 @@ export const LUCIDITY_TASKS: LucidityTask[] = [
         type: 'question',
         questionOptions: ['Energizado', 'Calmo', 'Cansado', 'Ansioso']
     },
+    {
+        id: 'dream_journal_entry',
+        title: 'Registrar Sonho',
+        description: 'Você anotou os detalhes do seu sonho no Diário hoje?',
+        category: 'morning',
+        xp: 20,
+        icon: BookOpen,
+        type: 'action'
+    },
 
     // --- Hábito e Questionamento (Dia) ---
     {
