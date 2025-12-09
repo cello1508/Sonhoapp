@@ -74,29 +74,29 @@ export function StatsHeader({ stats }: { stats: UserStats }) {
     const { lucidProbability } = useApp();
 
     return (
-        <div className="flex flex-col space-y-3 px-4 py-2 bg-slate-900/50 rounded-2xl border border-slate-800 backdrop-blur-md mx-6 -mt-2 mb-6">
+        <div className="flex flex-col space-y-4 px-5 py-4 bg-slate-900/60 rounded-3xl border border-slate-800/60 backdrop-blur-xl mx-6 mb-8 shadow-2xl shadow-black/20">
 
             {/* Top Row: Probability & Countdown */}
             <div className="flex items-center justify-between w-full">
                 {/* Probability Meter */}
-                <div className="flex items-center space-x-2">
-                    <div className="relative w-8 h-8 flex items-center justify-center">
+                <div className="flex items-center space-x-3">
+                    <div className="relative w-10 h-10 flex items-center justify-center">
                         <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="16" cy="16" r="14" fill="none" stroke="#1e293b" strokeWidth="4" />
+                            <circle cx="20" cy="20" r="16" fill="none" stroke="#1e293b" strokeWidth="4" />
                             <circle
-                                cx="16" cy="16" r="14"
+                                cx="20" cy="20" r="16"
                                 fill="none"
                                 stroke={lucidProbability > 50 ? '#8b5cf6' : '#3b82f6'}
                                 strokeWidth="4"
-                                strokeDasharray={`${lucidProbability * 0.88} 100`} // Approx circumference
+                                strokeDasharray={`${lucidProbability * 1.0} 100`} // Approx circumference
                                 strokeLinecap="round"
                             />
                         </svg>
-                        <Moon size={12} className="absolute text-white" />
+                        <Moon size={14} className="absolute text-white" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Chance</span>
-                        <span className="text-lg font-bold text-white leading-none">{Math.round(lucidProbability)}%</span>
+                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Chance</span>
+                        <span className="text-xl font-bold text-white leading-none">{Math.round(lucidProbability)}%</span>
                     </div>
                 </div>
 
@@ -105,16 +105,18 @@ export function StatsHeader({ stats }: { stats: UserStats }) {
             </div>
 
             {/* Bottom Row: XP Progress */}
-            <div className="flex items-center space-x-2 w-full pt-2 border-t border-slate-800">
-                <Sparkles className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <div className="flex flex-col w-full">
-                    <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        <span className="text-yellow-400">Nível {stats.level}</span>
+            <div className="flex items-center space-x-3 w-full pt-3 border-t border-white/5">
+                <div className="p-1.5 bg-yellow-500/10 rounded-lg">
+                    <Sparkles className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                </div>
+                <div className="flex flex-col w-full space-y-1.5">
+                    <div className="flex justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <span className="text-yellow-500">Nível {stats.level}</span>
                         <span>{stats.xp % 100}/100 XP</span>
                     </div>
-                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden ring-1 ring-white/5">
                         <div
-                            className="bg-gradient-to-r from-yellow-600 to-yellow-400 h-full rounded-full transition-all duration-500"
+                            className="bg-gradient-to-r from-yellow-600 to-yellow-400 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]"
                             style={{ width: `${(stats.xp % 100)}%` }}
                         />
                     </div>
