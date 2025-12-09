@@ -1,38 +1,82 @@
 import { Moon, BookOpen, User, GraduationCap, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { motion } from 'framer-motion';
 
 export function BottomNav() {
     const location = useLocation();
 
     const isActive = (path: string) => location.pathname === path;
 
-    return ( // Fixed position at bottom of the MobileLayout container
-        <nav className="h-16 bg-slate-900 border-t border-slate-800 grid grid-cols-5 items-center px-2 shrink-0">
-            <NavItem icon={Moon} label="Sonhos" to="/" active={isActive('/')} />
-            <NavItem icon={GraduationCap} label="Aprender" to="/learn" active={isActive('/learn')} />
+    const navItems = [
+        { icon: Moon, label: "Sonhos", path: "/" },
+        { icon: GraduationCap, label: "Aprender", path: "/learn" },
+        { icon: Plus, label: "Novo", path: "/add", isAction: true },
+        { icon: BookOpen, label: "Diário", path: "/journal" },
+        { icon: User, label: "Perfil", path: "/profile" },
+    ];
 
-            <div className="flex justify-center -mt-8">
-                <Link to="/add">
-                    <div className="bg-dream-500 hover:bg-dream-400 text-white p-4 rounded-full shadow-lg shadow-dream-500/20 transition-all active:scale-95">
-                        <Plus size={28} />
-                    </div>
-                </Link>
-            </div>
-
-            <NavItem icon={BookOpen} label="Diário" to="/journal" active={isActive('/journal')} />
-            <NavItem icon={User} label="Perfil" to="/profile" active={isActive('/profile')} />
-        </nav>
-    );
-}
-
-function NavItem({ icon: Icon, label, to, active }: { icon: any, label: string, to: string, active: boolean }) {
     return (
-        <Link to={to} className="flex flex-col items-center justify-center space-y-1 h-full w-full active:scale-95 transition-transform">
-            <Icon size={24} className={cn("transition-colors", active ? "text-dream-400 fill-dream-400/20" : "text-slate-500")} />
-            <span className={cn("text-[10px] font-medium transition-colors", active ? "text-dream-400" : "text-slate-500")}>
-                {label}
-            </span>
-        </Link>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-50">
+            <nav className="relative flex items-center justify-between px-2 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl shadow-black/50">
+                {navItems.map((item) => {
+                    const active = isActive(item.path);
+                    const isAction = item.isAction;
+
+                    if (isAction) {
+                        return (
+                            <Link key={item.path} to={item.path} className="relative group mx-2">
+                                <div className="absolute inset-0 bg-dream-500 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
+                                <div className="relative bg-dream-500 text-white p-3 rounded-full hover:scale-105 active:scale-95 transition-transform border border-white/10 shadow-lg shadow-dream-500/20">
+                                    <item.icon size={24} strokeWidth={2.5} />
+                                </div>
+                            </Link>
+                        )
+                    }
+
+                    return (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className="relative flex flex-col items-center justify-center w-12 h-12"
+                        >
+                            {active && (
+                                <motion.div
+                                    layoutId="nav-pill"
+                                    className="absolute inset-0 bg-white/10 rounded-full"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+
+                            <motion.div
+                                animate={{
+                                    scale: active ? 1 : 0.9,
+                                    y: active ? 0 : 2
+                                }}
+                                className={cn(
+                                    "relative z-10 p-2 rounded-full transition-colors",
+                                    active ? "text-white" : "text-slate-500 hover:text-slate-300"
+                                )}
+                            >
+                                <item.icon size={20} strokeWidth={active ? 2.5 : 2} />
+                            </motion.div>
+
+                            {active && (
+                                <motion.div
+                                    layoutId="nav-indicator"
+                                    className="absolute -bottom-1 w-1 h-1 bg-dream-400 rounded-full"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.1 }}
+                                />
+                            )}
+                        </Link>
+                    );
+                })}
+            </nav>
+        </div>
     );
 }

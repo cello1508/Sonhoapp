@@ -25,7 +25,7 @@ export function MobileLayout({ children, showNav = true, className }: MobileLayo
                 "w-full max-w-md h-[100dvh] flex flex-col relative z-10 bg-slate-950/30 backdrop-blur-sm",
                 className
             )}>
-                <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
+                <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
                     {children}
                 </main>
 
