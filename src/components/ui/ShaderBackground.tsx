@@ -243,4 +243,4 @@ const ShaderBackground = () => {
     );
 };
 
-export default ShaderBackground;
+export { ShaderBackground };

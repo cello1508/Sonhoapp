@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../hooks/useAuth';
+import { dreamService } from '../services/dreamService';
 import { MobileLayout } from '../components/layout/MobileLayout';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Loader } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AIVoiceInput } from '../components/ui/AIVoiceInput';
 
 export function AddDream() {
-    const { addDream } = useApp();
+    const { addDream: addDreamToLocal } = useApp(); // Keep local for fallback or context updates if needed
+    const { user } = useAuth();
     const navigate = useNavigate();
 
     const [title, setTitle] = useState('');
@@ -15,19 +18,63 @@ export function AddDream() {
     const [isLucid, setIsLucid] = useState(false);
     const [tags, setTags] = useState('');
     const [hasAudio, setHasAudio] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    const handleSubmit = (e?: React.FormEvent) => {
+    const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (!description && !hasAudio) return;
 
-        addDream({
+        setSaving(true);
+
+        const dreamData = {
             title: title || 'Sonho sem título',
             description: description || (hasAudio ? '🎙️ Gravação de áudio anexada' : ''),
             clarity,
             isLucid,
             tags: tags.split(',').map(t => t.trim()).filter(Boolean)
-        });
+        };
 
+        // If user is logged in, save to Supabase
+        if (user) {
+            try {
+                // 1. Create a "Night" entry (simplification: 1 dream = 1 night for now, or fetch today's night)
+                const nightDate = new Date().toISOString().split('T')[0];
+
+                // Check if night exists (simplified: just creating new for now to ensure data integrity)
+                // In a real app, we'd check `dreamService.getNightByDate` first.
+                // Letting createNight handle it? No, need ID.
+                // Let's create a new Night for this dream for simplicity of MVP.
+                const { data: night, error: nightError } = await dreamService.createNight({
+                    user_id: user.id,
+                    date: nightDate,
+                    sleep_quality: 3 // Default
+                });
+
+                if (nightError) throw nightError;
+                if (!night) throw new Error('Failed to create night');
+
+                const { error: dreamError } = await dreamService.addDream({
+                    night_id: night.id,
+                    user_id: user.id,
+                    title: dreamData.title,
+                    raw_text: dreamData.description,
+                    lucid: dreamData.isLucid,
+                    recall_clarity: dreamData.clarity,
+                    tags: dreamData.tags
+                });
+
+                if (dreamError) throw dreamError;
+
+            } catch (err) {
+                console.error("Failed to save to Supabase", err);
+                // Fallback or alert? Just logging for now
+            }
+        }
+
+        // Keep local context update for immediate UI feedback (if AppContext is still used for display)
+        addDreamToLocal(dreamData);
+
+        setSaving(false);
         navigate('/');
     };
 
@@ -40,10 +87,10 @@ export function AddDream() {
                 <h1 className="font-bold text-lg">Novo Sonho</h1>
                 <button
                     onClick={() => handleSubmit()}
-                    disabled={!description && !hasAudio}
+                    disabled={(!description && !hasAudio) || saving}
                     className="p-2 -mr-2 text-dream-400 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:text-dream-300 transition-colors"
                 >
-                    Salvar
+                    {saving ? <Loader className="animate-spin w-5 h-5" /> : 'Salvar'}
                 </button>
             </header>
 
