@@ -6,8 +6,18 @@ import { DreamStack } from '../components/journal/DreamStack';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
+import { useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
+
 export function Journal() {
-    const { dreams, stats } = useApp();
+    const { dreams, stats, syncDreams, deleteDream } = useApp();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (user) {
+            syncDreams(user.id);
+        }
+    }, [user]);
 
     return (
         <MobileLayout>
@@ -31,7 +41,7 @@ export function Journal() {
                 ) : (
                     <>
                         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Histórico</h2>
-                        <DreamStack dreams={dreams} />
+                        <DreamStack dreams={dreams} onDelete={deleteDream} />
                     </>
                 )}
             </div>

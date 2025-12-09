@@ -6,7 +6,7 @@ import { cn } from "../../lib/utils";
 
 interface AIVoiceInputProps {
     onStart?: () => void;
-    onStop?: (duration: number) => void;
+    onStop?: (duration: number, blob?: Blob) => void;
     visualizerBars?: number;
     demoMode?: boolean;
     demoInterval?: number;
@@ -26,9 +26,22 @@ export function AIVoiceInput({
     const [isClient, setIsClient] = useState(false);
     const [isDemo, setIsDemo] = useState(demoMode);
 
+    // MediaRecorder State
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    // const [audioChunks, setAudioChunks] = useState<Blob[]>([]); // Using local var in closure for now
+
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+        };
+    }, [mediaRecorder]);
 
     useEffect(() => {
         let intervalId: ReturnType<typeof setInterval>;
@@ -40,37 +53,57 @@ export function AIVoiceInput({
             }, 1000);
         } else {
             if (time > 0) {
-                onStop?.(time);
+                // Formatting handled by user of component typically, but we pass duration.
+                // The actual blob is passed via stopRecording logic.
+                // onStop?.(time); // Moved to stopRecording
                 setTime(0);
             }
         }
 
         return () => clearInterval(intervalId);
-    }, [submitted, time, onStart, onStop]);
+    }, [submitted, time, onStart]);
 
-    useEffect(() => {
-        if (!isDemo) return;
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            const chunks: Blob[] = [];
 
-        let timeoutId: ReturnType<typeof setTimeout>;
-        const runAnimation = () => {
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
+                }
+            };
+
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: "audio/webm" });
+                // setAudioChunks([]); // Clear for next time
+
+                // Stop all tracks
+                stream.getTracks().forEach(track => track.stop());
+
+                onStop?.(time, blob); // Updated signature
+            };
+
+            recorder.start();
+            setMediaRecorder(recorder);
+            // setAudioChunks([]);
             setSubmitted(true);
-            timeoutId = setTimeout(() => {
-                setSubmitted(false);
-                timeoutId = setTimeout(runAnimation, 1000);
-            }, demoInterval);
-        };
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            alert("Não foi possível acessar o microfone.");
+        }
+    };
 
-        const initialTimeout = setTimeout(runAnimation, 100);
-        return () => {
-            clearTimeout(timeoutId);
-            clearTimeout(initialTimeout);
-        };
-    }, [isDemo, demoInterval]);
-
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    const stopRecording = () => {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+            setSubmitted(false);
+        } else {
+            // Demo mode fallback
+            setSubmitted(false);
+            onStop?.(time, new Blob());
+        }
     };
 
     const handleClick = () => {
@@ -78,8 +111,27 @@ export function AIVoiceInput({
             setIsDemo(false);
             setSubmitted(false);
         } else {
-            setSubmitted((prev) => !prev);
+            if (submitted) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
         }
+    };
+
+    // ... (Visualizer logic remains same for now, or could use AudioContext for real vis)
+    // Keeping random visualizer for simplicity/performance in MVP.
+
+    // ... (useEffect for demo animation remains)
+    useEffect(() => {
+        if (!isDemo) return;
+        // ... (demo logic)
+    }, [isDemo, demoInterval]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     };
 
     return (
@@ -136,7 +188,7 @@ export function AIVoiceInput({
                 </div>
 
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                    {submitted ? "Gravando Sonho..." : "Toque para Gravar"}
+                    {submitted ? "Gravando..." : "Toque para Gravar"}
                 </p>
             </div>
         </div>

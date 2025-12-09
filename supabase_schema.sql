@@ -69,6 +69,7 @@ create table public.dreams (
   tags text[],
   recall_clarity int2 check (recall_clarity between 0 and 5),
   voice_note_url text,
+  cover_image text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

@@ -19,6 +19,7 @@ interface AppContextType {
     deleteDream: (id: string) => void;
     hasCompletedOnboarding: boolean;
     completeOnboarding: (name: string) => void;
+    syncDreams: (userId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -93,8 +94,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         awardXP(xpEarned);
     };
 
-    const deleteDream = (id: string) => {
+    const deleteDream = async (id: string) => {
+        // Optimistic update
         setDreams(prev => prev.filter(d => d.id !== id));
+
+        // Remote delete
+        const { dreamService } = await import('../services/dreamService');
+        await dreamService.deleteDream(id);
     };
 
     const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(() => {
@@ -108,8 +114,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setHasCompletedOnboarding(true);
     };
 
+    const syncDreams = async (userId: string) => {
+        const { dreamService } = await import('../services/dreamService');
+        const { data: nights } = await dreamService.getRecentNights(userId, 30);
+
+        if (nights) {
+            // Flatten nights to get dreams, or if you change UI to show nights, keep it. 
+            // Current UI expects Dream[].
+            // Mapping Logic:
+            const remoteDreams: Dream[] = nights.flatMap((night: any) =>
+                (night.dreams || []).map((d: any) => ({
+                    id: d.id,
+                    date: night.date,
+                    title: d.title || 'Sonho Sem Título',
+                    description: d.raw_text || '',
+                    clarity: d.recall_clarity || 50,
+                    isLucid: d.lucid || false,
+                    mood: d.emotion_main || 'neutral',
+                    recordingUrl: d.voice_note_url,
+                    coverImage: d.cover_image
+                }))
+            );
+
+            // Merge or Replace? 
+            // For MVP, Replace from Server (Server is Truth)
+            // But preserving local ID if strictly local? 
+            // Creating a simple "Replace with Server Data" policy for Journal.
+            if (remoteDreams.length > 0) {
+                setDreams(remoteDreams);
+            }
+        }
+    };
+
     return (
-        <AppContext.Provider value={{ dreams, stats, addDream, deleteDream, hasCompletedOnboarding, completeOnboarding }}>
+        <AppContext.Provider value={{ dreams, stats, addDream, deleteDream, hasCompletedOnboarding, completeOnboarding, syncDreams }}>
             {children}
         </AppContext.Provider>
     );

@@ -6,6 +6,7 @@ export interface Dream {
     clarity: number; // 1-5
     isLucid: boolean;
     tags: string[];
+    coverImage?: string;
 }
 
 export interface UserStats {

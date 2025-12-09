@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence, LayoutGroup, type PanInfo } from "framer-motion"
 import { cn } from "../../lib/utils"
-import { Grid3X3, Layers, LayoutList, Star, Calendar } from "lucide-react"
+import { Grid3X3, Layers, LayoutList, Star, Calendar, Trash2 } from "lucide-react"
 import type { Dream } from "../../types"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -15,6 +15,7 @@ export interface DreamStackProps {
     className?: string
     defaultLayout?: LayoutMode
     onDreamClick?: (dream: Dream) => void
+    onDelete?: (id: string) => void
 }
 
 const layoutIcons = {
@@ -30,6 +31,7 @@ export function DreamStack({
     className,
     defaultLayout = "stack",
     onDreamClick,
+    onDelete,
 }: DreamStackProps) {
     const [layout, setLayout] = useState<LayoutMode>(defaultLayout)
     const [expandedCard, setExpandedCard] = useState<string | null>(null)
@@ -159,7 +161,7 @@ export function DreamStack({
                                         onDreamClick?.(dream)
                                     }}
                                     className={cn(
-                                        "cursor-pointer rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl",
+                                        "relative cursor-pointer rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl overflow-hidden",
                                         "hover:border-dream-500/50 transition-colors",
                                         layout === "stack" && "absolute w-full h-auto min-h-[200px] left-0 right-0",
                                         layout === "stack" && isTopCard && "cursor-grab active:cursor-grabbing",
@@ -168,21 +170,21 @@ export function DreamStack({
                                         isExpanded && "ring-2 ring-dream-500 z-50",
                                     )}
                                 >
-                                    <div className="flex flex-col h-full">
+                                    <div className="flex flex-col h-full relative z-10">
                                         <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center text-xs font-medium text-dream-400 bg-dream-500/10 px-2 py-1 rounded-md">
+                                            <div className="flex items-center text-xs font-medium text-dream-400 bg-black/40 backdrop-blur-md px-2 py-1 rounded-md border border-white/10">
                                                 <Calendar size={10} className="mr-1.5" />
                                                 {format(parseISO(dream.date), "dd MMM", { locale: ptBR })}
                                             </div>
                                             {dream.isLucid && (
-                                                <div className="p-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                                                <div className="p-1 rounded-full bg-yellow-500/20 text-yellow-400 backdrop-blur-md border border-yellow-500/20">
                                                     <Star size={12} fill="currentColor" />
                                                 </div>
                                             )}
                                         </div>
 
                                         <h3 className={cn(
-                                            "font-bold text-white mb-1",
+                                            "font-bold text-white mb-1 drop-shadow-md",
                                             layout === "grid" ? "text-sm line-clamp-2" : "text-lg"
                                         )}>
                                             {dream.title}
@@ -190,7 +192,7 @@ export function DreamStack({
 
                                         <p
                                             className={cn(
-                                                "text-sm text-slate-400 mt-1",
+                                                "text-sm text-slate-200 mt-1 drop-shadow-md",
                                                 layout === "stack" && !isExpanded && "line-clamp-3",
                                                 layout === "grid" && "line-clamp-3 text-xs",
                                                 layout === "list" && !isExpanded && "line-clamp-2",
@@ -199,12 +201,40 @@ export function DreamStack({
                                             {dream.description}
                                         </p>
 
+                                        {isExpanded && onDelete && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm('Tem certeza que deseja apagar este sonho?')) {
+                                                        onDelete(dream.id);
+                                                    }
+                                                }}
+                                                className="absolute top-4 right-4 p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/30 transition-colors z-[60] backdrop-blur-md"
+                                                aria-label="Deletar sonho"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+
                                         {layout === "stack" && isTopCard && (
                                             <div className="mt-auto pt-4 flex justify-center">
-                                                <div className="h-1 w-12 rounded-full bg-slate-800" />
+                                                <div className="h-1 w-12 rounded-full bg-white/20 backdrop-blur-sm" />
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Cover Image Background */}
+                                    {dream.coverImage && (
+                                        <>
+                                            <img
+                                                src={dream.coverImage}
+                                                alt={dream.title}
+                                                className="absolute inset-0 w-full h-full object-cover opacity-100" // Fully visible
+                                            />
+                                            {/* Minimal Dark Gradient for Text Contrast */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                                        </>
+                                    )}
                                 </motion.div>
                             )
                         })}

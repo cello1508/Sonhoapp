@@ -3,12 +3,14 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../hooks/useAuth';
 import { dreamService } from '../services/dreamService';
 import { MobileLayout } from '../components/layout/MobileLayout';
-import { ArrowLeft, Star, Loader } from 'lucide-react';
+import { ArrowLeft, Star, Loader, Sparkles } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AIVoiceInput } from '../components/ui/AIVoiceInput';
+import { FluidSlider } from '../components/ui/FluidSlider';
+import { aiService } from '../services/aiService';
 
 export function AddDream() {
-    const { addDream: addDreamToLocal } = useApp(); // Keep local for fallback or context updates if needed
+    const { addDream: addDreamToLocal } = useApp(); // Keep local for fallback
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -19,6 +21,11 @@ export function AddDream() {
     const [tags, setTags] = useState('');
     const [hasAudio, setHasAudio] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // AI Image State
+    const [generatingImage, setGeneratingImage] = useState(false);
+    const [coverImage, setCoverImage] = useState<string | null>(null);
+    const [transcribing, setTranscribing] = useState(false);
 
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -31,23 +38,20 @@ export function AddDream() {
             description: description || (hasAudio ? '🎙️ Gravação de áudio anexada' : ''),
             clarity,
             isLucid,
-            tags: tags.split(',').map(t => t.trim()).filter(Boolean)
+            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+            coverImage // Add this to saved data if backend supports it later
         };
 
         // If user is logged in, save to Supabase
         if (user) {
             try {
-                // 1. Create a "Night" entry (simplification: 1 dream = 1 night for now, or fetch today's night)
+                // 1. Create a "Night" entry
                 const nightDate = new Date().toISOString().split('T')[0];
 
-                // Check if night exists (simplified: just creating new for now to ensure data integrity)
-                // In a real app, we'd check `dreamService.getNightByDate` first.
-                // Letting createNight handle it? No, need ID.
-                // Let's create a new Night for this dream for simplicity of MVP.
                 const { data: night, error: nightError } = await dreamService.createNight({
                     user_id: user.id,
                     date: nightDate,
-                    sleep_quality: 3 // Default
+                    sleep_quality: 3
                 });
 
                 if (nightError) throw nightError;
@@ -60,19 +64,23 @@ export function AddDream() {
                     raw_text: dreamData.description,
                     lucid: dreamData.isLucid,
                     recall_clarity: dreamData.clarity,
-                    tags: dreamData.tags
+                    tags: dreamData.tags,
+                    // @ts-ignore: Schema updated manually, type gen pending
+                    cover_image: coverImage
                 });
 
                 if (dreamError) throw dreamError;
 
             } catch (err) {
                 console.error("Failed to save to Supabase", err);
-                // Fallback or alert? Just logging for now
             }
         }
 
-        // Keep local context update for immediate UI feedback (if AppContext is still used for display)
-        addDreamToLocal(dreamData);
+        // Keep local context update
+        addDreamToLocal({
+            ...dreamData,
+            coverImage: dreamData.coverImage || undefined
+        });
 
         setSaving(false);
         navigate('/');
@@ -98,12 +106,28 @@ export function AddDream() {
 
                 {/* Audio Recording Section */}
                 <section>
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">Gravar Relato</label>
+                    <div className="flex justify-between items-center mb-3">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Gravar Relato</label>
+                        {transcribing && <span className="text-xs text-dream-400 animate-pulse font-medium">Transcrevendo...</span>}
+                    </div>
                     <AIVoiceInput
                         visualizerBars={30}
-                        onStop={() => {
+                        onStop={async (_, blob) => {
                             setHasAudio(true);
-                            if (!title) setTitle('Relato em Áudio');
+                            if (blob) {
+                                setTranscribing(true);
+                                try {
+                                    const text = await aiService.transcribeAudio(blob);
+                                    setDescription(prev => prev ? prev + "\n\n" + text : text);
+                                    if (!title) setTitle("Relato de Sonho (Áudio)");
+                                } catch (error) {
+                                    console.error("Transcription error", error);
+                                    alert("Erro ao transcrever áudio. Verifique sua chave API do Gemini.");
+                                    setDescription(prev => prev + "\n[Erro na transcrição: Áudio salvo, mas texto não gerado.]");
+                                } finally {
+                                    setTranscribing(false);
+                                }
+                            }
                         }}
                     />
                 </section>
@@ -129,48 +153,98 @@ export function AddDream() {
                     />
                 </section>
 
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Clareza</label>
-                        <span className="text-xs font-bold text-dream-400 px-2 py-1 bg-dream-500/10 rounded-lg">{clarity}/5</span>
+                {/* AI Image Generation Section */}
+                <section>
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ilustração (IA)</label>
+                        {coverImage && (
+                            <button
+                                onClick={() => setCoverImage(null)}
+                                className="text-xs text-red-400 hover:text-red-300"
+                            >
+                                Remover
+                            </button>
+                        )}
                     </div>
-                    <input
-                        type="range"
-                        min="1"
-                        max="5"
-                        step="1"
+
+                    {!coverImage ? (
+                        <button
+                            onClick={async () => {
+                                setGeneratingImage(true);
+                                try {
+                                    const imageUrl = await aiService.generateDreamImage(description || title);
+                                    setCoverImage(imageUrl);
+                                } catch (error) {
+                                    console.error("Image Gen Error", error);
+                                    alert("Erro ao gerar imagem.");
+                                } finally {
+                                    setGeneratingImage(false);
+                                }
+                            }}
+                            disabled={generatingImage || (!description && !title)}
+                            className="w-full h-32 rounded-xl border-2 border-dashed border-slate-700 hover:border-dream-500 hover:bg-slate-800/30 flex flex-col items-center justify-center gap-2 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {generatingImage ? (
+                                <>
+                                    <Loader className="animate-spin text-dream-400" />
+                                    <span className="text-sm font-medium text-dream-400 animate-pulse">Sonhando uma imagem...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="text-slate-500 group-hover:text-dream-400 transition-colors" />
+                                    <span className="text-sm font-medium text-slate-400 group-hover:text-dream-300">
+                                        Gerar Capa com IA
+                                    </span>
+                                </>
+                            )}
+                        </button>
+                    ) : (
+                        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-slate-700 group">
+                            <img src={coverImage} alt="Dream Cover" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                <Sparkles className="text-white w-8 h-8" />
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                <section className="space-y-4">
+                    <FluidSlider
+                        label="Nível de Clareza"
                         value={clarity}
-                        onChange={e => setClarity(Number(e.target.value))}
-                        className="w-full accent-dream-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                        onChange={setClarity}
+                        min={1}
+                        max={5}
+                        step={1}
                     />
                 </section>
 
                 <section className="flex items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-slate-800">
                     <div className="flex items-center space-x-3">
                         <div className={`p-2 rounded-full transition-colors ${isLucid ? 'bg-yellow-400/20 text-yellow-400 shadow-lg shadow-yellow-400/10' : 'bg-slate-800 text-slate-600'}`}>
-                            <Star size={20} fill={isLucid ? "currentColor" : "none"} />
+                            <Star className={`w-6 h-6 ${isLucid ? 'fill-current' : ''}`} />
                         </div>
                         <div>
-                            <h3 className="font-bold text-sm text-slate-200">Sonho Lúcido?</h3>
-                            <p className="text-xs text-slate-500">Você controlou o sonho?</p>
+                            <h3 className="font-bold text-white">Lucidez</h3>
+                            <p className="text-xs text-slate-400">Você sabia que estava sonhando?</p>
                         </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={isLucid} onChange={e => setIsLucid(e.target.checked)} />
-                        <div className="w-12 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-dream-500 transition-colors"></div>
+                        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-dream-500"></div>
                     </label>
                 </section>
 
-                <div className="space-y-2 hidden">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tags (separadas por vírgula)</label>
+                <section className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tags</label>
                     <input
                         type="text"
-                        placeholder="pesadelo, voar, escola..."
-                        className="w-full bg-slate-900/50 px-4 py-3 rounded-xl border-none focus:ring-1 focus:ring-dream-500/50"
+                        placeholder="Ex: Pesadelo, Voar, Família"
+                        className="w-full bg-slate-900/50 p-3 rounded-xl text-sm placeholder:text-slate-700 focus:outline-none focus:ring-1 focus:ring-dream-500/50 border border-slate-800 transition-all"
                         value={tags}
                         onChange={e => setTags(e.target.value)}
                     />
-                </div>
+                </section>
             </div>
         </MobileLayout>
     );

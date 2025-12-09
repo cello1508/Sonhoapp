@@ -19,11 +19,22 @@ export function Profile() {
                     <p className="text-dream-400 font-medium">Nível {stats.level}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 mb-8">
                     <StatCard icon={Trophy} label="XP Total" value={stats.xp} color="text-yellow-400" />
                     <StatCard icon={Calendar} label="Dias Seguidos" value={stats.streak} color="text-orange-500" />
                     <StatCard icon={Cloud} label="Sonhos" value={stats.dreamsRecorded} color="text-blue-400" />
                 </div>
+
+                <button
+                    onClick={async () => {
+                        const { authService } = await import('../services/authService');
+                        await authService.signOut();
+                        window.location.reload();
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 text-red-500 font-bold py-4 rounded-xl hover:bg-slate-800 transition-colors"
+                >
+                    Sair da Conta
+                </button>
             </div>
         </MobileLayout>
     );
