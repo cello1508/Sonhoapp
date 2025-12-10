@@ -165,17 +165,25 @@ export const aiService = {
 
         try {
             const prompt = `
-            Você é um assistente de "Laboratório de Sonhos". O usuário teve o seguinte sonho: "${dreamText}".
+            Atue como um "Detetive de Sonhos" criativo e perspicaz. O usuário teve o seguinte sonho: "${dreamText}".
             
-            Crie uma pergunta de múltipla escolha (Quiz) para testar a memória do sonhador sobre os detalhes deste sonho.
-            A pergunta deve ser sobre um detalhe específico (cor, objeto, ação).
-            Gerar 3 opções de resposta (A, B, C), sendo apenas UMA correta baseada no texto.
+            Sua missão é criar um desafio de memória (Quiz) intrigante para testar se o sonhador realmente prestou atenção nos detalhes.
             
-            Retorne APENAS um JSON válido com este formato, sem markdown ou code blocks:
+            REGRAS PARA A QUESTÃO:
+            1. NÃO faça perguntas óbvias (ex: "O que você fez?").
+            2. Foque em detalhes sutis mas presentes: cores específicas, objetos de fundo, sentimentos passageiros, ou a "lógica estranha" do sonho.
+            3. Use um tom levemente misterioso ou desafiador.
+            
+            REGRAS PARA AS OPÇÕES:
+            1. Crie 3 opções: A, B e C.
+            2. Apenas UMA deve ser correta (exatamente como no texto).
+            3. As outras duas (distratores) devem ser PLAUSÍVEIS dentro do contexto do sonho. Não coloque coisas absurdas que entreguem a resposta. Elas devem confundir levemente quem não lembra bem.
+            
+            Retorne APENAS um JSON válido com este formato:
             {
-                "question": "A pergunta aqui?",
-                "options": ["Opção 1 errada", "Opção 2 correta", "Opção 3 errada"],
-                "correctAnswer": "Opção 2 correta"
+                "question": "Sua pergunta intrigante aqui?",
+                "options": ["Opção plausível (falsa)", "Opção correta (verdadeira)", "Opção plausível (falsa)"],
+                "correctAnswer": "Opção correta (verdadeira)"
             }
             `;
 
