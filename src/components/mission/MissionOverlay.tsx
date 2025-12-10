@@ -128,14 +128,38 @@ export function MissionOverlay({ isOpen, onClose, tasks, category }: MissionOver
                                             <div className="grid gap-3">
                                                 {currentTask.questionOptions.map((opt, i) => {
                                                     const isSelected = selectedOptionIndex === i;
+                                                    const hasSelected = selectedOptionIndex !== null;
+                                                    const isCorrect = currentTask.correctAnswer === opt;
+                                                    const isWrongSelection = isSelected && !isCorrect;
+
+                                                    let baseStyle = "p-4 rounded-xl border font-medium transition-all text-left flex items-center justify-between";
+
+                                                    if (hasSelected) {
+                                                        if (isCorrect) {
+                                                            // Always show correct answer in green
+                                                            baseStyle += " bg-green-500/20 border-green-500 text-green-100";
+                                                        } else if (isWrongSelection) {
+                                                            // Selected wrong option gets red
+                                                            baseStyle += " bg-red-500/20 border-red-500 text-red-100";
+                                                        } else {
+                                                            // Other non-selected wrong options get dimmed
+                                                            baseStyle += " bg-slate-900/50 border-slate-800 text-slate-500 opacity-50";
+                                                        }
+                                                    } else {
+                                                        // Default state
+                                                        baseStyle += " bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800";
+                                                    }
+
                                                     return (
                                                         <button
                                                             key={i}
-                                                            onClick={() => setSelectedOptionIndex(i)}
-                                                            className={`p-4 rounded-xl border font-medium transition-all text-left flex items-center justify-between ${isSelected ? 'bg-indigo-500/20 border-indigo-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'}`}
+                                                            onClick={() => !hasSelected && setSelectedOptionIndex(i)}
+                                                            disabled={hasSelected}
+                                                            className={baseStyle}
                                                         >
                                                             <span>{opt}</span>
-                                                            {isSelected && <Check size={18} className="text-indigo-400" />}
+                                                            {hasSelected && isCorrect && <Check size={18} className="text-green-400" />}
+                                                            {hasSelected && isWrongSelection && <X size={18} className="text-red-400" />}
                                                         </button>
                                                     );
                                                 })}
