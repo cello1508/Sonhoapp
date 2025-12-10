@@ -1,6 +1,6 @@
 import { Hand, ScanFace, Bell, Wind, Brain, MapPin, Video, PlayCircle, Image, Star, BookOpen, Anchor, Zap, Repeat, Info } from 'lucide-react';
 
-export type TaskType = 'action' | 'question' | 'info';
+export type TaskType = 'action' | 'question' | 'info' | 'voice-practice';
 
 export interface LucidityTask {
     id: string;
@@ -13,6 +13,8 @@ export interface LucidityTask {
     questionOptions?: string[]; // For 'question' type
     correctAnswer?: string; // Optional, if there's a right answer
     infoContent?: string; // For 'info' type
+    targetPhrase?: string; // For 'voice-practice'
+    requiredRepetitions?: number; // For 'voice-practice'
 }
 
 export const LUCIDITY_TASKS: LucidityTask[] = [
@@ -147,12 +149,14 @@ export const LUCIDITY_TASKS: LucidityTask[] = [
     },
     {
         id: 'mild_ritual',
-        title: 'Ritual MILD',
-        description: 'Repita mentalmente 5x: "Na próxima vez que eu sonhar, vou lembrar que estou sonhando".',
+        title: 'Mantra MILD',
+        description: 'Repita em voz alta e com intenção:',
         category: 'night',
-        xp: 20,
+        xp: 30,
         icon: Repeat,
-        type: 'action'
+        type: 'voice-practice',
+        targetPhrase: "Na próxima vez que eu sonhar, vou lembrar que estou sonhando",
+        requiredRepetitions: 5
     },
     {
         id: 'scene_entry',

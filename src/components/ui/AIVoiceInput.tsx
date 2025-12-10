@@ -3,6 +3,7 @@
 import { Mic, Square } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
+import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 
 // Add global types for Web Speech API
 declare global {
@@ -39,12 +40,20 @@ export function AIVoiceInput({
     // MediaRecorder State
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-    // Speech Recognition State
-    const [recognition, setRecognition] = useState<any | null>(null);
-    const [transcript, setTranscript] = useState("");
+    // Speech Recognition Hook
+    const {
+        startListening,
+        stopListening,
+        transcript
+    } = useSpeechRecognition();
 
-    // Ref to hold the latest transcript to avoid stale closures in event handlers
+    // Ref to hold the latest transcript for the mediaRecorder closure
     const transcriptRef = useRef("");
+
+    // Sync ref when transcript updates
+    useEffect(() => {
+        transcriptRef.current = transcript;
+    }, [transcript]);
 
     useEffect(() => {
         setIsClient(true);
@@ -52,9 +61,6 @@ export function AIVoiceInput({
 
     // Effect to notify parent of transcript changes in real-time
     useEffect(() => {
-        // Sync ref with state for external updates if any (though we primarily write to ref in onresult)
-        // Only trigger this while recording (submitted) to avoid zombie updates after stop
-        // (which prevents user from deleting the text if parent re-renders)
         if (transcript && submitted) {
             onTranscriptChange?.(transcript);
         }
@@ -66,11 +72,9 @@ export function AIVoiceInput({
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
                 mediaRecorder.stop();
             }
-            if (recognition) {
-                recognition.stop();
-            }
+            stopListening();
         };
-    }, [mediaRecorder, recognition]);
+    }, [mediaRecorder, stopListening]);
 
     useEffect(() => {
         let intervalId: ReturnType<typeof setInterval>;
@@ -91,8 +95,7 @@ export function AIVoiceInput({
 
     const startRecording = async () => {
         try {
-            // Reset transcript
-            setTranscript("");
+            // Ref will auto-sync with hook transcript being empty or new
             transcriptRef.current = "";
 
             // 1. Audio Recording
@@ -117,38 +120,8 @@ export function AIVoiceInput({
             recorder.start();
             setMediaRecorder(recorder);
 
-            // 2. Speech Recognition (Native)
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            let recognizer = null;
-
-            if (SpeechRecognition) {
-                recognizer = new SpeechRecognition();
-                recognizer.continuous = true;
-                recognizer.interimResults = true;
-                recognizer.lang = 'pt-BR'; // Default to Portuguese
-
-                recognizer.onresult = (event: any) => {
-                    // Capture EVERYTHING (Final + Interim)
-                    // event.results contains the entire session history when continuous=true
-                    const currentTranscript = Array.from(event.results)
-                        .map((result: any) => result[0].transcript)
-                        .join('');
-
-                    if (currentTranscript) {
-                        setTranscript(currentTranscript);
-                        transcriptRef.current = currentTranscript; // Sync ref immediately
-                    }
-                };
-
-                recognizer.onerror = (event: any) => {
-                    console.error("Speech recognition error", event.error);
-                };
-
-                recognizer.start();
-                setRecognition(recognizer);
-            } else {
-                console.warn("Speech Recognition API not supported in this browser.");
-            }
+            // 2. Start Speech Recognition via Hook
+            startListening();
 
             setSubmitted(true);
         } catch (err) {
@@ -162,11 +135,7 @@ export function AIVoiceInput({
             mediaRecorder.stop();
         }
 
-        if (recognition) {
-            recognition.stop();
-            setRecognition(null);
-        }
-
+        stopListening();
         setSubmitted(false);
 
         // Demo mode logic is separate, focusing on real implementation here

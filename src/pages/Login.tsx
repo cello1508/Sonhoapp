@@ -49,13 +49,25 @@ export function Login() {
                 <ShaderBackground />
 
                 <div className="relative z-10 w-full max-w-sm mx-auto space-y-8">
-                    <div className="text-center space-y-2">
-                        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                            {isSignUp ? 'Criar Conta' : 'Bem-vindo'}
-                        </h1>
-                        <p className="text-slate-400">
-                            {isSignUp ? 'Comece sua jornada onírica' : 'Continue sua exploração'}
-                        </p>
+                    <div className="text-center space-y-4">
+                        <div className="flex justify-center">
+                            <div className="relative w-24 h-24 rounded-3xl overflow-hidden shadow-2xl shadow-dream-500/20 ring-4 ring-slate-900 border border-slate-700/50">
+                                <img
+                                    src="/assets/logo.jpg"
+                                    alt="Soninho Logo"
+                                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-3xl pointer-events-none" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                                {isSignUp ? 'Criar Conta' : 'Bem-vindo'}
+                            </h1>
+                            <p className="text-slate-400">
+                                {isSignUp ? 'Comece sua jornada onírica' : 'Continue sua exploração'}
+                            </p>
+                        </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">

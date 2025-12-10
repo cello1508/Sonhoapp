@@ -8,6 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AIVoiceInput } from '../components/ui/AIVoiceInput';
 import { FluidSlider } from '../components/ui/FluidSlider';
 import { aiService } from '../services/aiService';
+import { SoninhoMascot } from '../components/ui/SoninhoMascot';
 
 export function AddDream() {
     const { addDream: addDreamToLocal } = useApp(); // Keep local for fallback
@@ -181,13 +182,13 @@ export function AddDream() {
                                 }
                             }}
                             disabled={generatingImage || (!description && !title)}
-                            className="w-full h-32 rounded-xl border-2 border-dashed border-slate-700 hover:border-dream-500 hover:bg-slate-800/30 flex flex-col items-center justify-center gap-2 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`w-full rounded-xl border-2 border-dashed border-slate-700 hover:border-dream-500 hover:bg-slate-800/30 flex flex-col items-center justify-center gap-2 transition-all group disabled:opacity-100 disabled:cursor-wait ${generatingImage ? 'h-48 border-dream-500 bg-slate-800/20' : 'h-32'}`}
                         >
                             {generatingImage ? (
-                                <>
-                                    <Loader className="animate-spin text-dream-400" />
-                                    <span className="text-sm font-medium text-dream-400 animate-pulse">Sonhando uma imagem...</span>
-                                </>
+                                <div className="flex flex-col items-center animate-in fade-in duration-500">
+                                    <SoninhoMascot variant="painting" size="md" />
+                                    <span className="text-sm font-medium text-dream-400 animate-pulse mt-2">Pintando seu sonho...</span>
+                                </div>
                             ) : (
                                 <>
                                     <Sparkles className="text-slate-500 group-hover:text-dream-400 transition-colors" />

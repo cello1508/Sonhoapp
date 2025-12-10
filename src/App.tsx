@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { authService } from './services/authService';
@@ -10,13 +10,23 @@ import { Onboarding } from './pages/Onboarding';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { useAuth } from './hooks/useAuth';
+import { SoninhoMascot } from './components/ui/SoninhoMascot';
+
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50">
+      <SoninhoMascot size="lg" />
+      <p className="mt-4 text-slate-400 animate-pulse font-medium">Carregando sonhos...</p>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { hasCompletedOnboarding } = useApp();
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return null; // Or a splash screen
+  if (loading) return <LoadingScreen />;
 
   // 1. Check Auth First
   if (!user) {
@@ -36,7 +46,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
 
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
@@ -47,8 +57,14 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   // Sync Onboarding Logic
-  const { user } = useAuth();
+  const { user, loading } = useAuth(); // Destructure loading here too
   const { hasCompletedOnboarding, completeOnboarding } = useApp();
+  const [minLoadFinished, setMinLoadFinished] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMinLoadFinished(true), 2500); // 2.5s minimum splash
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -71,6 +87,12 @@ function AppRoutes() {
       checkDbStatus();
     }
   }, [user, hasCompletedOnboarding]);
+
+  const showSplash = loading || !minLoadFinished;
+
+  if (showSplash) {
+    return <LoadingScreen />;
+  }
 
   return (
     <Routes>
