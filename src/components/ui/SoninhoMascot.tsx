@@ -1,7 +1,7 @@
 
 interface SoninhoMascotProps {
     className?: string;
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
     showGlow?: boolean;
     variant?: 'idle' | 'painting';
 }
@@ -11,7 +11,8 @@ export function SoninhoMascot({ className = '', size = 'md', showGlow = true, va
         sm: 'w-16 h-16',
         md: 'w-32 h-32',
         lg: 'w-48 h-48',
-        xl: 'w-64 h-64'
+        xl: 'w-64 h-64',
+        full: 'w-full h-full'
     };
 
     const videoSources = {
