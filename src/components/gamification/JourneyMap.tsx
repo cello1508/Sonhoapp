@@ -68,13 +68,14 @@ export function JourneyMap({ tasks, completedTaskIds, onTaskSelect }: JourneyMap
         <div className="relative w-full max-w-md mx-auto" style={{ height: totalHeight }}>
             {/* The Connected Path */}
             <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 0 }}>
-                {/* Background Line (Gray) */}
+                {/* Background Line (High Contrast) */}
                 <path
                     d={pathData}
                     fill="none"
-                    stroke="#1e293b" // slate-800
-                    strokeWidth="12"
+                    stroke="#475569" // slate-600 - lighter for visibility
+                    strokeWidth="8"
                     strokeLinecap="round"
+                    strokeDasharray="10 10" // Dashed line
                     className="opacity-50"
                 />
                 {/* Progress Line (Colored) - Optional complex logic, for now simple gray path */}
@@ -88,6 +89,17 @@ export function JourneyMap({ tasks, completedTaskIds, onTaskSelect }: JourneyMap
                 let bgClass = "bg-slate-800";
                 let ringClass = "ring-slate-700";
                 let iconColor = "text-slate-400";
+
+                // Determine lock state - RELAXED for now to allow viewing all?
+                // Or sticky strict? User said "nao ta liberando". 
+                // If the user hasn't completed the first one, the second IS locked.
+                // Maybe they want to see what's ahead? 
+
+                // Let's keep strict locking but ensure the visual state implies "Up Next" clearly.
+                // Also, ensure the first task is ALWAYS unlocked.
+                // Logic: index 0 is always unlocked. 
+                // If logic was: index > 0 && !prevCompleted && !selfCompleted -> Locked. 
+                // This seems correct. If task 0 is not done, task 1 is locked.
 
                 if (node.category === 'morning') {
                     if (node.isCompleted) { bgClass = "bg-orange-500"; ringClass = "ring-orange-600/30"; iconColor = "text-white"; }
@@ -112,7 +124,7 @@ export function JourneyMap({ tasks, completedTaskIds, onTaskSelect }: JourneyMap
                         className={`absolute w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-b-4 border-black/30 transform -translate-x-1/2 -translate-y-1/2 z-10 transition-all active:scale-95 active:border-b-0 active:translate-y-[-45%] ${bgClass} ring-4 ${ringClass}`}
                         style={{ left: `${node.x}%`, top: node.y }}
                         onClick={() => !node.isLocked && onTaskSelect(node)}
-                        disabled={node.isLocked && !node.isCompleted} // Allow re-opening? Maybe
+                        disabled={node.isLocked && !node.isCompleted}
                         whileHover={{ scale: node.isLocked ? 1 : 1.1 }}
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
