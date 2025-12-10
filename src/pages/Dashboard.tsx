@@ -17,8 +17,9 @@ export function Dashboard() {
     useEffect(() => {
         if (dreams.length > 0 && !quizTask) {
             const latestDream = dreams[0];
+
             // Only generate if we have a description
-            if (latestDream.description && latestDream.description.length > 20) {
+            if (latestDream.description && latestDream.description.length > 10) {
                 import('../services/aiService').then(({ aiService }) => {
                     aiService.generateDreamQuiz(latestDream.description).then(quiz => {
                         setQuizTask({
