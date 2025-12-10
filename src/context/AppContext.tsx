@@ -32,6 +32,7 @@ interface AppContextType {
     updateBedtime: (time: string) => void;
     toggleTask: (taskId: string, xpReward: number) => void;
     completeMission: (category: 'morning' | 'day' | 'night', xpEarned: number) => void;
+    markTaskAsCompleted: (taskId: string, xpReward: number) => void;
     lucidProbability: number;
     awardXP: (amount: number) => void;
 }
@@ -187,6 +188,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
     };
 
+    const markTaskAsCompleted = (taskId: string, _xpReward: number) => {
+        setStats(prev => {
+            const completed = prev.completedTasks || [];
+            if (completed.includes(taskId)) return prev;
+            return { ...prev, completedTasks: [...completed, taskId] };
+        });
+    };
+
     const addDream = (dreamData: Omit<Dream, 'id' | 'date'>) => {
         const newDream: Dream = {
             ...dreamData,
@@ -282,6 +291,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             stats,
             addDream,
             deleteDream,
+            markTaskAsCompleted,
             hasCompletedOnboarding,
             completeOnboarding,
             syncDreams,

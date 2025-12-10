@@ -14,7 +14,7 @@ interface MissionOverlayProps {
 }
 
 export function MissionOverlay({ isOpen, onClose, tasks, category }: MissionOverlayProps) {
-    const { completeMission } = useApp();
+    const { completeMission, markTaskAsCompleted } = useApp();
     const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
     const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
     const [isVoiceTaskCompleted, setIsVoiceTaskCompleted] = useState(false);
@@ -57,9 +57,19 @@ export function MissionOverlay({ isOpen, onClose, tasks, category }: MissionOver
             setSelectedOptionIndex(null);
             setIsVoiceTaskCompleted(false);
 
+            // Mark current task as completed
+            if (currentTask) {
+                markTaskAsCompleted(currentTask.id, currentTask.xp);
+            }
+
             // Small delay or state update batching? React should handle it.
             setCurrentTaskIndex(prev => prev + 1);
         } else {
+            // Mark current task as completed in global stats
+            if (currentTask) {
+                markTaskAsCompleted(currentTask.id, currentTask.xp);
+            }
+
             // Mission Complete!
             setShowSuccess(true);
             soundService.playSuccess();
