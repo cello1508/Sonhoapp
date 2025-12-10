@@ -52,6 +52,14 @@ export const authService = {
             .eq('id', userId)
             .select()
             .single();
+
+        // If name is being updated, also sync to Auth Metadata for immediate UI feedback
+        if (!error && updates.name) {
+            await supabase.auth.updateUser({
+                data: { name: updates.name }
+            });
+        }
+
         return { data, error };
     },
 

@@ -117,6 +117,11 @@ export function Onboarding() {
                 onboarding_completed: true,
                 bedtime: bedtime
             });
+
+            // 3. Save Name
+            if (name) {
+                await authService.updateProfile(user.id, { name: name });
+            }
         }
 
         navigate('/');

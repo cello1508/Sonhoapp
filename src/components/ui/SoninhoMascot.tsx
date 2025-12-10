@@ -33,7 +33,7 @@ export function SoninhoMascot({ className = '', size = 'md', showGlow = true, va
                     loop
                     muted
                     playsInline
-                    className="w-full h-full object-cover scale-150"
+                    className="w-full h-full object-contain"
                     style={{ mixBlendMode: 'screen' }}
                 />
             </div>

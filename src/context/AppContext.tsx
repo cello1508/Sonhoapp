@@ -73,9 +73,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, [stats]);
 
     const calculateProbability = () => {
-        let prob = 15;
-        prob += Math.min(stats.dailyActions * 10, 50);
-        prob += Math.min(stats.streak * 2, 30);
+        let prob = 10;
+        prob += Math.min(stats.dailyActions * 2, 20);
+        prob += Math.min(stats.streak * 3, 50);
         setLucidProbability(Math.min(prob, 95));
     };
 
