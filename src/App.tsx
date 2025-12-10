@@ -119,16 +119,20 @@ import { GlobalBinauralPlayer } from './components/ui/GlobalBinauralPlayer';
 
 // ...
 
+import { AuthProvider } from './context/AuthContext';
+
 function App() {
   return (
-    <AppProvider>
-      <SoundProvider>
-        <BrowserRouter>
-          <GlobalBinauralPlayer />
-          <AppRoutes />
-        </BrowserRouter>
-      </SoundProvider>
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <SoundProvider>
+          <BrowserRouter>
+            <GlobalBinauralPlayer />
+            <AppRoutes />
+          </BrowserRouter>
+        </SoundProvider>
+      </AppProvider>
+    </AuthProvider>
   );
 }
 
