@@ -182,7 +182,7 @@ export function AddDream() {
                                 }
                             }}
                             disabled={generatingImage || (!description && !title)}
-                            className={`w-full rounded-3xl border-2 border-dashed border-slate-700 hover:border-dream-500 hover:bg-slate-800/30 flex flex-col items-center justify-center gap-2 transition-all group disabled:opacity-100 disabled:cursor-wait ${generatingImage ? 'h-64 border-dream-500 bg-slate-800/20' : 'h-32'}`}
+                            className={`w-full rounded-3xl border-2 border-dashed border-slate-700 hover:border-dream-500 hover:bg-slate-800/30 flex flex-col items-center justify-center gap-2 transition-all group disabled:opacity-100 disabled:cursor-wait h-64 ${generatingImage ? 'border-dream-500 bg-slate-800/20' : ''}`}
                         >
                             {generatingImage ? (
                                 <div className="flex flex-col items-center animate-in fade-in duration-500">
@@ -199,7 +199,7 @@ export function AddDream() {
                             )}
                         </button>
                     ) : (
-                        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-slate-700 group">
+                        <div className="relative w-full h-64 rounded-3xl overflow-hidden border border-slate-700 group">
                             <img src={coverImage} alt="Dream Cover" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                 <Sparkles className="text-white w-8 h-8" />
