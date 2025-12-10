@@ -1,7 +1,7 @@
 import { Sparkles, Moon, Clock, Volume2, VolumeX } from 'lucide-react';
 import type { UserStats } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { soundService } from '../../services/soundService';
+
 import { useState, useEffect } from 'react';
 
 function Countdown({ bedtime }: { bedtime?: string }) {
