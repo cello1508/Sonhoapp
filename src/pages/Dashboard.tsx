@@ -4,13 +4,13 @@ import { StatsHeader } from '../components/gamification/StatsHeader';
 import { LUCIDITY_TASKS, type LucidityTask } from '../data/lucidityTasks';
 import { MissionOverlay } from '../components/mission/MissionOverlay';
 import { useMemo, useState } from 'react';
-import { Play, Zap, Sun, Moon, CheckCircle2 } from 'lucide-react';
+import { JourneyMap } from '../components/gamification/JourneyMap';
 
 export function Dashboard() {
     const { stats } = useApp();
     const tasks = LUCIDITY_TASKS;
 
-    const [activeMission, setActiveMission] = useState<'morning' | 'day' | 'night' | null>(null);
+    const [selectedTask, setSelectedTask] = useState<LucidityTask | null>(null);
 
     // Helper to randomize array
     const randomizeTasks = (allTasks: LucidityTask[], count: number) => {
@@ -19,99 +19,39 @@ export function Dashboard() {
 
     // Filter and randomize tasks by category (memoized to prevent reshuffle on every render)
     const morningTasks = useMemo(() => randomizeTasks(tasks.filter(t => t.category === 'morning'), 5), [tasks]);
-
     const dayTasks = useMemo(() => randomizeTasks(tasks.filter(t => t.category === 'day'), 5), [tasks]);
     const nightTasks = useMemo(() => randomizeTasks(tasks.filter(t => t.category === 'night'), 5), [tasks]);
 
-    const getMissionStatus = (category: 'morning' | 'day' | 'night') => {
-        const today = new Date().toDateString();
-        const lastDate = stats.lastMissionDates?.[category];
-        return lastDate === today ? 'completed' : 'active';
-    };
-
-    const MissionCard = ({ category, title, icon: Icon, color, tasksForMission }: { category: 'morning' | 'day' | 'night', title: string, icon: any, color: string, tasksForMission: LucidityTask[] }) => {
-        const status = getMissionStatus(category);
-        const isCompleted = status === 'completed';
-
-        // Select 3 random tasks for this session if Active, otherwise irrelevant
-        // In a real app we might want to store THESE specific 3 tasks for the day too.
-        // For MVP, we pass all available tasks to overlay, and overlay picks or we pick here.
-        // Let's pass all relevant tasks to overlay and let it cycle user through them (or subset).
-
-        return (
-            <button
-                disabled={isCompleted}
-                onClick={() => setActiveMission(category)}
-                className={`w-full relative overflow-hidden rounded-2xl p-1 transition-all duration-300 ${isCompleted ? 'opacity-70 grayscale' : 'hover:scale-[1.02] shadow-xl'}`}
-            >
-                <div className={`absolute inset-0 bg-gradient-to-r ${color} opacity-20`} />
-                <div className="relative bg-slate-900/60 backdrop-blur-sm rounded-xl p-6 flex items-center justify-between border border-white/5">
-                    <div className="flex items-center space-x-4">
-                        <div className={`p-4 rounded-full ${isCompleted ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white'}`}>
-                            {isCompleted ? <CheckCircle2 size={24} /> : <Icon size={24} />}
-                        </div>
-                        <div className="text-left">
-                            <h3 className="text-lg font-bold text-white">{title}</h3>
-                            <div className="flex items-center space-x-2">
-                                <span className="text-xs text-slate-400">
-                                    {isCompleted ? 'Concluído por hoje' : `${tasksForMission.length} tarefas disponíveis`}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    {!isCompleted && (
-                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                            <Play size={18} fill="currentColor" className="text-white" />
-                        </div>
-                    )}
-                </div>
-            </button>
-        );
-    };
+    // Combine for Journey
+    const dailyJourneyTasks = useMemo(() => {
+        return [...morningTasks, ...dayTasks, ...nightTasks];
+    }, [morningTasks, dayTasks, nightTasks]);
 
     return (
         <MobileLayout>
             <div className="pb-24">
                 <StatsHeader stats={stats} />
 
-                <div className="px-6 mt-8 space-y-4">
-                    <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Missões do Dia</h2>
+                <div className="px-4 mt-6">
+                    <div className="bg-slate-900/50 rounded-3xl p-4 min-h-[500px] border border-slate-800/50 relative overflow-hidden">
+                        {/* Background ambience or decorative elements could go here */}
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+                        <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none"></div>
 
-                    <MissionCard
-                        category="morning"
-                        title="Despertar & Recall"
-                        icon={Sun}
-                        color="from-orange-500 to-yellow-500"
-                        tasksForMission={morningTasks}
-                    />
-
-                    <MissionCard
-                        category="day"
-                        title="Lucidez Ativa"
-                        icon={Zap}
-                        color="from-blue-500 to-indigo-500"
-                        tasksForMission={dayTasks}
-                    />
-
-                    <MissionCard
-                        category="night"
-                        title="Preparação Noturna"
-                        icon={Moon}
-                        color="from-purple-500 to-indigo-900"
-                        tasksForMission={nightTasks}
-                    />
+                        <JourneyMap
+                            tasks={dailyJourneyTasks}
+                            completedTaskIds={stats.completedTasks || []}
+                            onTaskSelect={(task) => setSelectedTask(task)}
+                        />
+                    </div>
                 </div>
             </div>
 
             <MissionOverlay
-                isOpen={!!activeMission}
-                onClose={() => setActiveMission(null)}
-                tasks={
-                    activeMission === 'morning' ? morningTasks :
-                        activeMission === 'day' ? dayTasks :
-                            activeMission === 'night' ? nightTasks : []
-                }
-                category={activeMission}
+                isOpen={!!selectedTask}
+                onClose={() => setSelectedTask(null)}
+                tasks={selectedTask ? [selectedTask] : []}
+                category={selectedTask?.category || null}
             />
         </MobileLayout>
     );
