@@ -3,41 +3,14 @@ import { MobileLayout } from '../components/layout/MobileLayout';
 import { StatsHeader } from '../components/gamification/StatsHeader';
 import { LUCIDITY_TASKS, type LucidityTask } from '../data/lucidityTasks';
 import { MissionOverlay } from '../components/mission/MissionOverlay';
-import { useMemo, useState, useEffect } from 'react';
-import { Play, Zap, Sun, Moon, CheckCircle2, Brain } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Play, Zap, Sun, Moon, CheckCircle2 } from 'lucide-react';
 
 export function Dashboard() {
-    const { stats, dreams } = useApp();
+    const { stats } = useApp();
     const tasks = LUCIDITY_TASKS;
 
     const [activeMission, setActiveMission] = useState<'morning' | 'day' | 'night' | null>(null);
-    const [quizTask, setQuizTask] = useState<LucidityTask | null>(null);
-
-    // Fetch AI Quiz based on latest dream
-    useEffect(() => {
-        if (dreams.length > 0 && !quizTask) {
-            const latestDream = dreams[0];
-
-            // Only generate if we have a description
-            if (latestDream.description && latestDream.description.length > 10) {
-                import('../services/aiService').then(({ aiService }) => {
-                    aiService.generateDreamQuiz(latestDream.description).then(quiz => {
-                        setQuizTask({
-                            id: 'ai_quiz_' + latestDream.id,
-                            title: 'Desafio de Memória (IA)',
-                            category: 'morning', // Morning task fits well for recall
-                            xp: 25,
-                            icon: Brain,
-                            type: 'question',
-                            questionOptions: quiz.options,
-                            correctAnswer: quiz.correctAnswer,
-                            description: quiz.question
-                        });
-                    }).catch(err => console.error(err));
-                });
-            }
-        }
-    }, [dreams, quizTask]);
 
     // Helper to randomize array
     const randomizeTasks = (allTasks: LucidityTask[], count: number) => {
@@ -45,15 +18,7 @@ export function Dashboard() {
     };
 
     // Filter and randomize tasks by category (memoized to prevent reshuffle on every render)
-    const morningTasks = useMemo(() => {
-        const base = tasks.filter(t => t.category === 'morning');
-        if (quizTask) {
-            // If quiz exists, take 4 random OTHER tasks, and put quiz first
-            const others = randomizeTasks(base, 4);
-            return [quizTask, ...others];
-        }
-        return randomizeTasks(base, 5);
-    }, [tasks, quizTask]);
+    const morningTasks = useMemo(() => randomizeTasks(tasks.filter(t => t.category === 'morning'), 5), [tasks]);
 
     const dayTasks = useMemo(() => randomizeTasks(tasks.filter(t => t.category === 'day'), 5), [tasks]);
     const nightTasks = useMemo(() => randomizeTasks(tasks.filter(t => t.category === 'night'), 5), [tasks]);
