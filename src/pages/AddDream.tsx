@@ -182,12 +182,12 @@ export function AddDream() {
                                 }
                             }}
                             disabled={generatingImage || (!description && !title)}
-                            className={`w-full rounded-xl border-2 border-dashed border-slate-700 hover:border-dream-500 hover:bg-slate-800/30 flex flex-col items-center justify-center gap-2 transition-all group disabled:opacity-100 disabled:cursor-wait ${generatingImage ? 'h-48 border-dream-500 bg-slate-800/20' : 'h-32'}`}
+                            className={`w-full rounded-3xl border-2 border-dashed border-slate-700 hover:border-dream-500 hover:bg-slate-800/30 flex flex-col items-center justify-center gap-2 transition-all group disabled:opacity-100 disabled:cursor-wait ${generatingImage ? 'h-64 border-dream-500 bg-slate-800/20' : 'h-32'}`}
                         >
                             {generatingImage ? (
                                 <div className="flex flex-col items-center animate-in fade-in duration-500">
-                                    <SoninhoMascot variant="painting" size="md" />
-                                    <span className="text-sm font-medium text-dream-400 animate-pulse mt-2">Pintando seu sonho...</span>
+                                    <SoninhoMascot variant="painting" size="xl" />
+                                    <span className="text-sm font-medium text-dream-400 animate-pulse mt-4">Pintando seu sonho...</span>
                                 </div>
                             ) : (
                                 <>
