@@ -34,7 +34,10 @@ export function SoninhoMascot({ className = '', size = 'md', showGlow = true, va
                     muted
                     playsInline
                     className="w-full h-full object-contain"
-                    style={{ mixBlendMode: 'screen' }}
+                    style={{
+                        maskImage: 'radial-gradient(circle at center, black 40%, transparent 95%)',
+                        WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 95%)'
+                    }}
                 />
             </div>
         </div>
