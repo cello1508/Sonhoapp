@@ -22,8 +22,7 @@ export function MissionOverlay({ isOpen, onClose, tasks, category }: MissionOver
 
     // Filter to limit tasks per session (e.g. 3 tasks max)
     const sessionTasks = useMemo(() => {
-        // Shuffle and take 3 for brevity, or take all passed
-        return tasks.slice(0, 3);
+        return tasks;
     }, [tasks]);
 
     // Reset state when opening

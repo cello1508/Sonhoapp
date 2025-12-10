@@ -158,5 +158,56 @@ export const aiService = {
                 return "https://images.unsplash.com/photo-1483086431886-3590a88317fe?q=80&w=2574&auto=format&fit=crop";
             }
         }
+    },
+
+    async generateDreamQuiz(dreamText: string): Promise<{ question: string; options: string[]; correctAnswer: string }> {
+        if (!API_KEY) throw new Error("API Key config missing");
+
+        try {
+            const prompt = `
+            Você é um assistente de "Laboratório de Sonhos". O usuário teve o seguinte sonho: "${dreamText}".
+            
+            Crie uma pergunta de múltipla escolha (Quiz) para testar a memória do sonhador sobre os detalhes deste sonho.
+            A pergunta deve ser sobre um detalhe específico (cor, objeto, ação).
+            Gerar 3 opções de resposta (A, B, C), sendo apenas UMA correta baseada no texto.
+            
+            Retorne APENAS um JSON válido com este formato, sem markdown ou code blocks:
+            {
+                "question": "A pergunta aqui?",
+                "options": ["Opção 1 errada", "Opção 2 correta", "Opção 3 errada"],
+                "correctAnswer": "Opção 2 correta"
+            }
+            `;
+
+            const genResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            if (!genResponse.ok) throw new Error("Failed to generate quiz");
+
+            const genData = await genResponse.json();
+            let text = genData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!text) throw new Error("No text generated");
+
+            // Clean markdown just in case
+            text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            const json = JSON.parse(text);
+            return json;
+
+        } catch (error) {
+            console.error("Quiz Gen Error:", error);
+            // Fallback quiz if AI fails
+            return {
+                question: "Qual era o sentimento predominante neste sonho?",
+                options: ["Medo", "Alegria", "Confusão"],
+                correctAnswer: "Confusão" // Generic fallback
+            };
+        }
     }
 };
