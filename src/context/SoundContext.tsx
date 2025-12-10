@@ -29,7 +29,7 @@ export function SoundProvider({ children }: { children: ReactNode }) {
                 setTimeLeft((prev) => {
                     if (prev <= 1) {
                         // Finished Successfully
-                        awardXP(50); // Reward for 3-min session
+                        awardXP(10); // Reward for 3-min session
 
                         // Slow fade for timer end
                         stopSession(3.0);
