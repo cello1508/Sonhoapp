@@ -13,7 +13,9 @@ export function Header({ title, subtitle, rightAction }: HeaderProps) {
                 {subtitle && <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">{subtitle}</p>}
                 {title && <h1 className="text-2xl font-bold text-white leading-tight">{title}</h1>}
             </div>
-            {rightAction && <div>{rightAction}</div>}
+            {rightAction && <div className="flex items-center gap-2">
+                {rightAction}
+            </div>}
         </header>
     );
 }

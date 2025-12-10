@@ -114,12 +114,20 @@ function AppRoutes() {
   );
 }
 
+import { SoundProvider } from './context/SoundContext';
+import { GlobalBinauralPlayer } from './components/ui/GlobalBinauralPlayer';
+
+// ...
+
 function App() {
   return (
     <AppProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <SoundProvider>
+        <BrowserRouter>
+          <GlobalBinauralPlayer />
+          <AppRoutes />
+        </BrowserRouter>
+      </SoundProvider>
     </AppProvider>
   );
 }

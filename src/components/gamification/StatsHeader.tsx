@@ -1,6 +1,7 @@
-import { Sparkles, Moon, Clock } from 'lucide-react';
+import { Sparkles, Moon, Clock, Volume2, VolumeX } from 'lucide-react';
 import type { UserStats } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { soundService } from '../../services/soundService';
 import { useState, useEffect } from 'react';
 
 function Countdown({ bedtime }: { bedtime?: string }) {
@@ -70,55 +71,81 @@ function Countdown({ bedtime }: { bedtime?: string }) {
     );
 }
 
-export function StatsHeader({ stats }: { stats: UserStats }) {
+import { useSound } from '../../context/SoundContext';
+
+interface StatsHeaderProps {
+    stats: UserStats;
+}
+
+export function StatsHeader({ stats }: StatsHeaderProps) {
     const { lucidProbability } = useApp();
+    const { isActive, startSession, maximizeSession } = useSound();
+
+    const handleSoundClick = () => {
+        if (isActive) {
+            maximizeSession();
+        } else {
+            startSession();
+        }
+    };
 
     return (
-        <div className="flex flex-col space-y-4 px-5 py-4 bg-slate-900/60 rounded-3xl border border-slate-800/60 backdrop-blur-xl mx-6 mt-4 mb-8 shadow-2xl shadow-black/20">
+        <div className="pt-8 px-6 pb-2 relative z-20">
 
-            {/* Top Row: Probability & Countdown */}
-            <div className="flex items-center justify-between w-full">
-                {/* Probability Meter */}
-                <div className="flex items-center space-x-3">
-                    <div className="relative w-10 h-10 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="20" cy="20" r="16" fill="none" stroke="#1e293b" strokeWidth="4" />
-                            <circle
-                                cx="20" cy="20" r="16"
-                                fill="none"
-                                stroke={lucidProbability > 50 ? '#8b5cf6' : '#3b82f6'}
-                                strokeWidth="4"
-                                strokeDasharray={`${lucidProbability * 1.0} 100`} // Approx circumference
-                                strokeLinecap="round"
+            <div className="bg-slate-900/50 backdrop-blur-md rounded-2xl flex flex-col space-y-4 p-4 border border-slate-800 shadow-lg relative">
+
+                {/* Binaural Session Trigger */}
+                <button
+                    onClick={handleSoundClick}
+                    className={`absolute -top-3 -right-2 w-10 h-10 border-2 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10 ${isActive ? 'bg-dream-500 border-dream-400 text-white shadow-dream-500/40' : 'bg-slate-800 border-slate-700 text-dream-400'}`}
+                >
+                    {isActive ? <Volume2 size={16} className="animate-pulse" /> : <VolumeX size={16} />}
+                </button>
+
+                {/* Top Row: Probability & Countdown */}
+                <div className="flex items-center justify-between w-full">
+                    {/* Probability Meter */}
+                    <div className="flex items-center space-x-3">
+                        <div className="relative w-10 h-10 flex items-center justify-center">
+                            <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="20" cy="20" r="16" fill="none" stroke="#1e293b" strokeWidth="4" />
+                                <circle
+                                    cx="20" cy="20" r="16"
+                                    fill="none"
+                                    stroke={lucidProbability > 50 ? '#8b5cf6' : '#3b82f6'}
+                                    strokeWidth="4"
+                                    strokeDasharray={`${lucidProbability * 1.0} 100`}
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <Moon size={14} className="absolute text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Chance</span>
+                            <span className="text-xl font-bold text-white leading-none">{Math.round(lucidProbability)}%</span>
+                        </div>
+                    </div>
+
+                    {/* Countdown */}
+                    <Countdown bedtime={stats.bedtime} />
+                </div>
+
+                {/* Bottom Row: XP Progress */}
+                <div className="flex items-center space-x-3 w-full pt-3 border-t border-white/5">
+                    <div className="p-1.5 bg-yellow-500/10 rounded-lg">
+                        <Sparkles className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    </div>
+                    <div className="flex flex-col w-full space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <span className="text-yellow-500">Nível {stats.level}</span>
+                            <span>{stats.xp % 100}/100 XP</span>
+                        </div>
+                        <div className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden ring-1 ring-white/5">
+                            <div
+                                className="bg-gradient-to-r from-yellow-600 to-yellow-400 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]"
+                                style={{ width: `${(stats.xp % 100)}%` }}
                             />
-                        </svg>
-                        <Moon size={14} className="absolute text-white" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Chance</span>
-                        <span className="text-xl font-bold text-white leading-none">{Math.round(lucidProbability)}%</span>
-                    </div>
-                </div>
-
-                {/* Countdown */}
-                <Countdown bedtime={stats.bedtime} />
-            </div>
-
-            {/* Bottom Row: XP Progress */}
-            <div className="flex items-center space-x-3 w-full pt-3 border-t border-white/5">
-                <div className="p-1.5 bg-yellow-500/10 rounded-lg">
-                    <Sparkles className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                </div>
-                <div className="flex flex-col w-full space-y-1.5">
-                    <div className="flex justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        <span className="text-yellow-500">Nível {stats.level}</span>
-                        <span>{stats.xp % 100}/100 XP</span>
-                    </div>
-                    <div className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden ring-1 ring-white/5">
-                        <div
-                            className="bg-gradient-to-r from-yellow-600 to-yellow-400 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]"
-                            style={{ width: `${(stats.xp % 100)}%` }}
-                        />
+                        </div>
                     </div>
                 </div>
             </div>

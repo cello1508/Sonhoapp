@@ -72,7 +72,136 @@ class SoundService {
         this.playTone(1174.66, 'sine', 2.5, now + 0.4);    // D6 (The 9th, very dreamy)
     }
 
-    // Sound: Button Click / Select - Subtle
+    private ambientNodes: AudioNode[] = [];
+    private isMuted: boolean = true; // Start muted by default for browser policy
+
+    // Ambient: Lucid Dream Binaural Beats (40Hz Gamma) + Ethereal Drone
+    public startAmbient() {
+        if (this.isMuted) return;
+        this.init();
+        this.stopAmbient(); // Clear existing
+
+        const now = this.audioContext!.currentTime;
+        const fadeTime = 2.0;
+
+        // 1. Binaural Beat (Gamma 40Hz)
+        // Base Freq: 200Hz
+        // Left: 200Hz, Right: 240Hz
+        const leftOsc = this.audioContext!.createOscillator();
+        const rightOsc = this.audioContext!.createOscillator();
+        const leftPan = this.audioContext!.createStereoPanner();
+        const rightPan = this.audioContext!.createStereoPanner();
+        const binGain = this.audioContext!.createGain();
+
+        leftOsc.frequency.value = 200;
+        rightOsc.frequency.value = 240;
+
+        leftPan.pan.value = -1; // Fully Left
+        rightPan.pan.value = 1; // Fully Right
+
+        binGain.gain.setValueAtTime(0, now);
+        binGain.gain.linearRampToValueAtTime(0.02, now + fadeTime); // Ultra Low volume for background
+
+        leftOsc.connect(leftPan).connect(binGain);
+        rightOsc.connect(rightPan).connect(binGain);
+        binGain.connect(this.masterGain!);
+
+        leftOsc.start(now);
+        rightOsc.start(now);
+
+        // 2. Ethereal Drone (Dreamy Pad)
+        // A slowly modulating Chord
+        const droneOsc1 = this.audioContext!.createOscillator();
+        const droneOsc2 = this.audioContext!.createOscillator();
+        const droneGain = this.audioContext!.createGain();
+
+        droneOsc1.type = 'triangle';
+        droneOsc1.frequency.value = 110; // A2
+
+        droneOsc2.type = 'sine';
+        droneOsc2.frequency.value = 164.81; // E3
+
+        droneGain.gain.setValueAtTime(0, now);
+        droneGain.gain.linearRampToValueAtTime(0.04, now + fadeTime);
+
+        // Add some LFO for movement? Keeping it simple for now (CPU safe)
+        droneOsc1.connect(droneGain);
+        droneOsc2.connect(droneGain);
+        droneGain.connect(this.masterGain!);
+
+        droneOsc1.start(now);
+        droneOsc2.start(now);
+
+        this.ambientNodes = [leftOsc, rightOsc, binGain, droneOsc1, droneOsc2, droneGain, leftPan, rightPan];
+    }
+
+    public stopAmbient(duration: number = 2.0) {
+        if (!this.audioContext) return;
+        const now = this.audioContext.currentTime;
+
+        // Safety: If array is empty, we can't stop anything. 
+        // This might happen if 'startAmbient' failed or wasn't called.
+        // But if sound is playing, nodes must exist.
+
+        // Strategy: 
+        // 1. Cancel all future volume changes.
+        // 2. Schedule ramp to 0.
+        // 3. Stop oscillators shortly after.
+
+        this.ambientNodes.forEach(node => {
+            if (node instanceof GainNode) {
+                // IMPORTANT: In Web Audio, 'cancelScheduledValues' is necessary to remove active ramps.
+                node.gain.cancelScheduledValues(now);
+
+                // Ramp to 0. We don't use 'setValueAtTime' with 'node.gain.value' because it reads intrinsic value (usually 1 or 0) not current calculated value.
+                // By calling linearRamp directly after cancel, browsers try to smooth it from current render value.
+                // However, for immediate stop, we force it.
+                if (duration < 0.2) {
+                    node.gain.value = 0;
+                    node.gain.setValueAtTime(0, now);
+                } else {
+                    node.gain.linearRampToValueAtTime(0, now + duration);
+                }
+            }
+            if (node instanceof OscillatorNode) {
+                if (duration < 0.2) {
+                    node.stop(now);
+                } else {
+                    node.stop(now + duration + 0.1);
+                }
+            }
+
+            // Clean up: Disconnect to be sure
+            setTimeout(() => {
+                try { node.disconnect(); } catch (e) { }
+            }, (duration * 1000) + 200);
+        });
+
+        // Clear references
+        this.ambientNodes = [];
+    }
+
+    public setMute(muted: boolean, fadeDuration: number = 1.0) {
+        this.isMuted = muted;
+        if (muted) {
+            this.stopAmbient(fadeDuration);
+        } else {
+            this.startAmbient();
+        }
+        // Persist
+        localStorage.setItem('soninho_muted', String(muted));
+    }
+
+    public getMuteState(): boolean {
+        // Init state from storage if exists
+        const stored = localStorage.getItem('soninho_muted');
+        if (stored !== null) {
+            this.isMuted = stored === 'true';
+        }
+        return this.isMuted;
+    }
+
+    // Sound: Click
     public playClick() {
         this.init();
         this.playTone(440, 'sine', 0.1);

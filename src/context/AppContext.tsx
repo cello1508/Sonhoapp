@@ -33,6 +33,7 @@ interface AppContextType {
     toggleTask: (taskId: string, xpReward: number) => void;
     completeMission: (category: 'morning' | 'day' | 'night', xpEarned: number) => void;
     lucidProbability: number;
+    awardXP: (amount: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -287,7 +288,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             updateBedtime,
             toggleTask,
             completeMission,
-            lucidProbability
+            lucidProbability,
+            awardXP
         }}>
             {children}
         </AppContext.Provider>
