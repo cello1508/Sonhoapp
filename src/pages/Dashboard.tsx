@@ -45,9 +45,12 @@ export function Dashboard() {
 
     // Filter and randomize tasks by category (memoized to prevent reshuffle on every render)
     const morningTasks = useMemo(() => {
-        let base = tasks.filter(t => t.category === 'morning');
-        // Inject quiz if available
-        if (quizTask) base = [quizTask, ...base];
+        const base = tasks.filter(t => t.category === 'morning');
+        if (quizTask) {
+            // If quiz exists, take 4 random OTHER tasks, and put quiz first
+            const others = randomizeTasks(base, 4);
+            return [quizTask, ...others];
+        }
         return randomizeTasks(base, 5);
     }, [tasks, quizTask]);
 
